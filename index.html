@@ -751,6 +751,7 @@
   <!-- Summary metrics -->
   <div class="section">
     <div class="section-title">P&amp;L summary</div>
+    <div id="inputWarn" class="field-error" style="display:none;margin-bottom:.75rem"></div>
     <div class="metric-grid" id="metricGrid"></div>
     <p class="hint" style="margin-bottom:.75rem">ⓘ "Annualised return" is a simplified estimate (CAGR on equity) — it treats the whole holding period as one lump sum rather than your actual monthly mortgage payments, so it is not the same as a bank-quoted IRR/XIRR. It is also a leveraged return (on your equity), so it is not directly comparable to the unleveraged benchmark returns below.</p>
     <div id="breakeven"></div>
@@ -865,6 +866,12 @@ var latestCalcToken = 0;
 
 var fmt    = function(v) { return 'S$' + Math.round(Math.abs(v)).toLocaleString(); };
 var fmtSgn = function(v) { return (v >= 0 ? '+' : '-') + fmt(v); };
+var fmtDate = function(d) {
+  if (!d) return '';
+  var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getDate() + ' ' + mo[d.getMonth()] + ' ' + d.getFullYear();
+};
+var dayAfter = function(d) { var n = new Date(d); n.setDate(n.getDate() + 1); return n; };
 
 /* ─────────────────────────────────────────────
    Stamp duty calculations
@@ -891,20 +898,23 @@ function calcProg(amount, bands) {
 
 function getAbsdRate(bt, pc, date, remission, fta) {
   var d = new Date(date), p = parseInt(pc);
-  var apr23 = new Date('2023-04-27'), jul18 = new Date('2018-07-06');
+  var apr23 = new Date('2023-04-27'), dec21 = new Date('2021-12-16'), jul18 = new Date('2018-07-06');
   var jan13 = new Date('2013-01-12'), dec11 = new Date('2011-12-08');
-  if (bt === 'EN') return d>=apr23?65:d>=jul18?25:d>=jan13?15:d>=dec11?10:0;
+  /* Entity/company rate by regime (excludes the +5% non-remittable add-on for housing developers). */
+  if (bt === 'EN') return d>=apr23?65:d>=dec21?35:d>=jul18?25:d>=jan13?15:d>=dec11?10:0;
   /* Under Free Trade Agreements, nationals of the USA and nationals/PRs of Iceland, Liechtenstein,
      Norway or Switzerland get the same stamp-duty treatment as a Singapore Citizen. */
   if (fta && bt === 'FG') bt = 'SC';
   if (remission && (bt === 'SC' || bt === 'PR') && p === 2) return 0;
+  /* Columns by purchase-date regime:
+     [ Apr 2023+ , 16 Dec 2021–26 Apr 2023 , 6 Jul 2018–15 Dec 2021 , 12 Jan 2013–5 Jul 2018 , 8 Dec 2011–11 Jan 2013 ] */
   var tbl = {
-    SC: { 1:[0,0,0,0],   2:[20,12,7,3],  3:[30,15,10,3] },
-    PR: { 1:[5,5,5,0],   2:[30,15,10,3], 3:[35,15,10,3] },
-    FG: { 1:[60,20,15,10],2:[60,20,15,10],3:[60,20,15,10] }
+    SC: { 1:[0,0,0,0,0],       2:[20,17,12,7,3],    3:[30,25,15,10,3] },
+    PR: { 1:[5,5,5,5,0],       2:[30,25,15,10,3],   3:[35,30,15,10,3] },
+    FG: { 1:[60,30,20,15,10],  2:[60,30,20,15,10],  3:[60,30,20,15,10] }
   };
   var k = p >= 3 ? 3 : p, row = tbl[bt][k];
-  return d>=apr23?row[0]:d>=jul18?row[1]:d>=jan13?row[2]:d>=dec11?row[3]:0;
+  return d>=apr23?row[0]:d>=dec21?row[1]:d>=jul18?row[2]:d>=jan13?row[3]:d>=dec11?row[4]:0;
 }
 
 function getSsdInfo(pd, sd) {
@@ -914,27 +924,22 @@ function getSsdInfo(pd, sd) {
      anniversaries (not a 365.25-day count) keeps exact-anniversary and leap-year sales in the
      correct tier. The applicable regime is fixed by the purchase date. */
   var jul25 = new Date('2025-07-04'), mar17 = new Date('2017-03-11'), jan11 = new Date('2011-01-14');
-  var within = function(n) { var d = new Date(pDate); d.setFullYear(d.getFullYear() + n); return sDate <= d; };
-  if (pDate >= jul25) {
-    if (within(1)) return { rate:16, label:'SSD 16% (held ≤1yr, Jul 2025+ regime)' };
-    if (within(2)) return { rate:12, label:'SSD 12% (held ≤2yr)' };
-    if (within(3)) return { rate:8,  label:'SSD 8% (held ≤3yr)' };
-    if (within(4)) return { rate:4,  label:'SSD 4% (held ≤4yr)' };
-    return { rate:0, label:'' };
-  } else if (pDate >= mar17) {
-    if (within(1)) return { rate:12, label:'SSD 12% (held ≤1yr, Mar 2017 regime)' };
-    if (within(2)) return { rate:8,  label:'SSD 8% (held ≤2yr)' };
-    if (within(3)) return { rate:4,  label:'SSD 4% (held ≤3yr)' };
-    return { rate:0, label:'' };
-  } else if (pDate >= jan11) {
-    if (within(1)) return { rate:16, label:'SSD 16% (held ≤1yr, Jan 2011 regime)' };
-    if (within(2)) return { rate:12, label:'SSD 12% (held ≤2yr)' };
-    if (within(3)) return { rate:8,  label:'SSD 8% (held ≤3yr)' };
-    if (within(4)) return { rate:4,  label:'SSD 4% (held ≤4yr)' };
-    return { rate:0, label:'' };
-  } else {
-    return within(1) ? { rate:3, label:'SSD 3% (held ≤1yr, pre-2011)' } : { rate:0, label:'' };
+  var anniv  = function(n) { var d = new Date(pDate); d.setFullYear(d.getFullYear() + n); return d; };
+  var within = function(n) { return sDate <= anniv(n); };
+  var tiers, regime;
+  if (pDate >= jul25)      { tiers = [[1,16],[2,12],[3,8],[4,4]]; regime = 'Jul 2025+ regime'; }
+  else if (pDate >= mar17) { tiers = [[1,12],[2,8],[3,4]];        regime = 'Mar 2017 regime'; }
+  else if (pDate >= jan11) { tiers = [[1,16],[2,12],[3,8],[4,4]]; regime = 'Jan 2011 regime'; }
+  else                     { tiers = [[1,3]];                     regime = 'pre-2011 regime'; }
+  for (var i = 0; i < tiers.length; i++) {
+    var n = tiers[i][0], rate = tiers[i][1];
+    if (within(n)) {
+      /* boundary = last day this tier applies (the Nth anniversary); selling AFTER it drops a tier */
+      return { rate:rate, label:'SSD ' + rate + '% (held ≤' + n + 'yr, ' + regime + ')',
+               boundary:anniv(n), boundaryYr:n, nextRate:(i + 1 < tiers.length ? tiers[i+1][1] : 0) };
+    }
   }
+  return { rate:0, label:'', boundary:null, boundaryYr:null, nextRate:0 };
 }
 
 /* ─────────────────────────────────────────────
@@ -1038,7 +1043,13 @@ function updateAbsdHint() {
   var ssd = getSsdInfo(pd, sd);
   if (ssd.rate > 0) {
     ssdEl.style.display = 'block';
-    ssdEl.innerHTML = '⚠ ' + ssd.label + ' — Seller\'s Stamp Duty (SSD) applies at ' + ssd.rate + '% of sale price. SSD is charged to discourage short-term flipping; it steps down the longer you hold, and drops to 0% once you\'ve held long enough. Pushing your sale date later would reduce or remove this charge.';
+    var cliff = '';
+    if (ssd.boundary) {
+      cliff = ' This ' + ssd.rate + '% tier applies to a sale <strong>on or before ' + fmtDate(ssd.boundary)
+        + '</strong>; selling <strong>from ' + fmtDate(dayAfter(ssd.boundary)) + '</strong> '
+        + (ssd.nextRate > 0 ? 'drops SSD to ' + ssd.nextRate + '%.' : 'removes SSD entirely (0%).');
+    }
+    ssdEl.innerHTML = '⚠ ' + ssd.label + ' — Seller\'s Stamp Duty applies at ' + ssd.rate + '% of the higher of sale price or valuation.' + cliff + ' The tier is set by the calendar holding period, so a single day past a boundary changes it.';
   } else {
     ssdEl.style.display = 'none';
   }
@@ -1179,8 +1190,11 @@ function computePnl(inputs) {
   var bsdBase       = Math.max(pp, purchaseVal);
   var ssdBase       = Math.max(sp, saleVal);
   var bsd           = getBsdRate(bsdBase, pd);
-  var absdRate      = getAbsdRate(bt, pc, pd, remission, fta);
-  var absd          = bsdBase * absdRate / 100;
+  var absdFullRate  = getAbsdRate(bt, pc, pd, false, fta);   // rate ignoring remission — what is actually paid upfront
+  var absdRate      = remission ? 0 : absdFullRate;          // effective rate for the final (post-refund) P&L
+  var absdPaid      = bsdBase * absdFullRate / 100;          // ABSD cash paid at completion (bridging requirement)
+  var absd          = bsdBase * absdRate / 100;              // net ABSD cost (0 when remitted, i.e. refunded)
+  var absdRefund    = absdPaid - absd;                       // reclaimed later when remission applies (else 0)
   var agentBuyCost  = pp * agentBuyPct / 100;
   var ssdInfo       = getSsdInfo(pd, sd);
   var ssd           = ssdBase * ssdInfo.rate / 100;
@@ -1207,6 +1221,9 @@ function computePnl(inputs) {
 
   var equity      = pp - loan;
   var totalCashIn = equity + bsd + absd + agentBuyCost + legalBuy;
+  /* Peak cash actually needed on completion day. With ABSD remission you still pay ABSD upfront and
+     reclaim it later, so the bridging requirement exceeds the net cash-in used for the return calc. */
+  var peakUpfrontCash = equity + bsd + absdPaid + agentBuyCost + legalBuy;
   /* If the loss exceeds the total cash invested, ending equity is <= 0 and a fractional-power IRR is
      undefined (Math.pow of a negative base returns NaN). Floor it at -100% (equity fully wiped out) so
      the metric and the benchmark comparison stay finite rather than rendering/propagating NaN. */
@@ -1214,26 +1231,33 @@ function computePnl(inputs) {
   var irr         = holdYears > 0
     ? (endingEquity > 0 ? (Math.pow(endingEquity / totalCashIn, 1 / holdYears) - 1) * 100 : -100)
     : 0;
-  /* Solve netPnl=0 for sale price: agent commission and SSD both scale with sp, legalSell is fixed. */
-  var breakEven = (totalEntryCost + totalInterest + totalPropTax + totalMaint
-                  - totalRentalNet + legalSell)
-                / (1 - (agentCommPct + ssdInfo.rate) / 100);
+  /* Solve netPnl = 0 for the sale price. Sell-side agent commission scales with the sale price; SSD is
+     charged on max(sale price, sale valuation). If the sale valuation exceeds the break-even price, SSD
+     is a FIXED amount (valuation-based) that does NOT scale with price, so solve both regimes and take
+     the internally consistent one. (With no sale valuation this reduces to the price-scaled formula.) */
+  var beFixed      = totalEntryCost + totalInterest + totalPropTax + totalMaint - totalRentalNet + legalSell;
+  var aFrac        = agentCommPct / 100, sFrac = ssdInfo.rate / 100;
+  var beValBased   = (beFixed + saleVal * sFrac) / (1 - aFrac);                              // SSD fixed at saleVal*rate
+  var bePriceBased = (1 - aFrac - sFrac) > 0 ? beFixed / (1 - aFrac - sFrac) : Infinity;     // SSD scales with sale price
+  var breakEven    = (saleVal > 0 && beValBased <= saleVal) ? beValBased : bePriceBased;
 
-  /* Rental yields use full contractual annual rent (100% occupancy) — the market convention. The
-     occupancy-adjusted figure feeds the P&L cash flow above, not the headline yield. */
+  /* Gross yield uses full contractual annual rent (100% occupancy) — the market convention. Net yield
+     uses the occupancy-adjusted effective rent (rentalGrossPa) so it moves with occupancy exactly like
+     the P&L cash flow does. Mortgage interest is excluded from both (shown separately). */
   var fullRentPa = isRental ? monthlyRent * 12 : 0;
   var grossYield = pp > 0 && isRental ? fullRentPa / pp * 100 : 0;
-  var netYield   = pp > 0 && isRental ? (fullRentPa - rentalExp - propTax - maint) / pp * 100 : 0;
+  var netYield   = pp > 0 && isRental ? (rentalGrossPa - rentalExp - propTax - maint) / pp * 100 : 0;
 
   return {
     loan:loan, holdMonths:holdMonths, holdYears:holdYears,
-    bsd:bsd, absdRate:absdRate, absd:absd, agentBuyCost:agentBuyCost,
+    bsd:bsd, absdRate:absdRate, absd:absd, absdFullRate:absdFullRate, absdPaid:absdPaid, absdRefund:absdRefund,
+    agentBuyCost:agentBuyCost,
     ssdInfo:ssdInfo, ssd:ssd, agentSellCost:agentSellCost,
     totalInterest:totalInterest, outstandingLoan:outstandingLoan,
     totalPropTax:totalPropTax, totalMaint:totalMaint,
     totalRentalGross:totalRentalGross, totalRentalExp:totalRentalExp, totalRentalNet:totalRentalNet,
     totalEntryCost:totalEntryCost, exitProceeds:exitProceeds, netPnl:netPnl,
-    equity:equity, totalCashIn:totalCashIn, irr:irr, breakEven:breakEven,
+    equity:equity, totalCashIn:totalCashIn, peakUpfrontCash:peakUpfrontCash, irr:irr, breakEven:breakEven,
     grossYield:grossYield, netYield:netYield
   };
 }
@@ -1282,6 +1306,17 @@ function calculate(scroll) {
   var remEligible = (effBt === 'SC' || effBt === 'PR') && pc === '2';
   var remission   = remEligible && document.getElementById('absdRemission').checked;
 
+  /* Input sanity: the numeric parser floors negatives at 0, which would silently turn a mistyped
+     negative rate — or a zero/blank loan tenure — into a rosier, zero-interest result. Clamp the
+     tenure to a realistic minimum when a loan exists, and collect notes to surface below the metrics. */
+  var rawNum = function(id) { return parseFloat(String(document.getElementById(id).value).replace(/,/g, '')); };
+  var inputWarnings = [];
+  if (rawNum('fixedRate') < 0 || rawNum('floatRate') < 0) inputWarnings.push('interest rates can’t be negative — treated as 0%');
+  if (pp > 0 && ltvPct > 0) {
+    var rawTenure = rawNum('loanTenure');
+    if (!isNaN(rawTenure) && rawTenure < 1) { tenure = 1; inputWarnings.push('a mortgage must run at least 1 year — loan tenure treated as 1 year (a 0-year tenure would understate interest to zero)'); }
+  }
+
   if (!pd || !sd || !pp || !sp || new Date(sd) <= new Date(pd)) {
     /* Inputs not yet complete/valid — hide results, show the empty state. No alert: this runs live on
        every keystroke. (Date-order errors still surface inline via updateAbsdHint's #dateOrderError.) */
@@ -1301,6 +1336,7 @@ function calculate(scroll) {
   var out          = computePnl(inputs);
   var holdMonths   = out.holdMonths, holdYears = out.holdYears;
   var bsd          = out.bsd, absdRate = out.absdRate, absd = out.absd, agentBuyCost = out.agentBuyCost;
+  var absdPaid     = out.absdPaid, absdRefund = out.absdRefund, absdFullRate = out.absdFullRate, peakUpfrontCash = out.peakUpfrontCash;
   var ssdInfo      = out.ssdInfo, ssd = out.ssd, agentSellCost = out.agentSellCost;
   var totalInterest = out.totalInterest, outstandingLoan = out.outstandingLoan, loan = out.loan, equity = out.equity;
   var totalPropTax = out.totalPropTax, totalMaint = out.totalMaint;
@@ -1318,18 +1354,25 @@ function calculate(scroll) {
   }
 
   /* ── Metric cards ── */
+  var holdDays = Math.round((new Date(sd) - new Date(pd)) / 86400000);
   var metrics = ''
     + '<div class="metric"><div class="metric-label">Net P&L</div><div class="metric-val ' + (netPnl>=0?'pos':'neg') + '">' + fmtSgn(netPnl) + '</div></div>'
     + '<div class="metric"><div class="metric-label"><abbr class="term" title="Simplified CAGR on equity: treats the entire holding period as one lump-sum cash flow rather than discounting actual monthly mortgage payments — not a true XIRR.">Annualised return</abbr></div><div class="metric-val ' + (irr>=0?'pos':'neg') + '">' + irr.toFixed(2) + '%</div></div>'
-    + '<div class="metric"><div class="metric-label">Holding period</div><div class="metric-val">' + holdMonths + ' mo</div></div>'
+    + '<div class="metric"><div class="metric-label">Holding period</div><div class="metric-val">' + holdMonths + ' mo</div><div style="font-size:11px;color:var(--color-text-tertiary);margin-top:2px">' + holdDays.toLocaleString('en-US') + ' days' + (ssdInfo.rate > 0 && ssdInfo.boundary ? ' · SSD ' + ssdInfo.rate + '% until ' + fmtDate(ssdInfo.boundary) : '') + '</div></div>'
     + '<div class="metric"><div class="metric-label">Break-even sale price</div><div class="metric-val">' + fmt(breakEven) + '</div></div>'
     + '<div class="metric"><div class="metric-label">Total interest paid</div><div class="metric-val neg">-' + fmt(totalInterest) + '</div></div>'
     + '<div class="metric"><div class="metric-label">Loan balance still owed at sale</div><div class="metric-val">' + fmt(outstandingLoan) + '</div></div>';
   if (isRental) {
     metrics += '<div class="metric"><div class="metric-label"><abbr class="term" title="Full contractual annual rent at 100% occupancy, divided by purchase price, before expenses, tax, maintenance, or mortgage cost.">Gross rental yield</abbr></div><div class="metric-val pos">' + grossYield.toFixed(2) + '%</div></div>'
-             + '<div class="metric"><div class="metric-label"><abbr class="term" title="Full contractual annual rent at 100% occupancy, minus rental expenses, property tax, and maintenance, divided by purchase price. Mortgage interest is NOT subtracted — it is shown separately as Total interest paid.">Net rental yield</abbr></div><div class="metric-val ' + (netYield>=0?'pos':'neg') + '">' + netYield.toFixed(2) + '%</div></div>';
+             + '<div class="metric"><div class="metric-label"><abbr class="term" title="Occupancy-adjusted annual rent (contractual rent × expected occupancy), minus rental expenses, property tax, and maintenance, divided by purchase price — so it moves with occupancy like the P&L. Mortgage interest is NOT subtracted; it is shown separately as Total interest paid.">Net rental yield</abbr></div><div class="metric-val ' + (netYield>=0?'pos':'neg') + '">' + netYield.toFixed(2) + '%</div></div>';
   }
   document.getElementById('metricGrid').innerHTML = metrics;
+
+  var iw = document.getElementById('inputWarn');
+  if (iw) {
+    if (inputWarnings.length) { iw.style.display = 'block'; iw.innerHTML = '⚠ ' + inputWarnings.join('; ') + '.'; }
+    else { iw.style.display = 'none'; iw.innerHTML = ''; }
+  }
 
   /* ── Break-even bar ── */
   var beRatio  = sp / breakEven;
@@ -1347,10 +1390,12 @@ function calculate(scroll) {
     + '<tr><td colspan="2" style="font-weight:500;font-size:12px;color:var(--color-text-secondary);padding-top:10px">UPFRONT (CASH)</td></tr>'
     + '<tr><td>Down payment (equity)</td><td>-' + fmt(equity) + '</td></tr>'
     + '<tr><td>BSD</td><td>-' + fmt(bsd) + '</td></tr>'
-    + '<tr><td>ABSD (' + absdRate + '%' + (remission ? ', remitted' : '') + ')</td><td>' + (absd>0 ? '-'+fmt(absd) : '—') + '</td></tr>'
+    + '<tr><td>ABSD (' + absdFullRate + '%' + (remission ? ', paid upfront then reclaimed' : '') + ')</td><td>' + (absdPaid>0 ? '-'+fmt(absdPaid) : '—') + '</td></tr>'
+    + (remission ? '<tr><td>ABSD remission refund (after selling your first home, ~6 months)</td><td>+' + fmt(absdRefund) + '</td></tr>' : '')
     + '<tr><td>Buy-side agent commission (' + agentBuyPct + '%)</td><td>' + (agentBuyCost>0 ? '-'+fmt(agentBuyCost) : '—') + '</td></tr>'
     + '<tr><td>Buy-side legal fees</td><td>' + (legalBuy>0 ? '-'+fmt(legalBuy) : '—') + '</td></tr>'
-    + '<tr class="total"><td>Total upfront cash</td><td>-' + fmt(totalCashIn) + '</td></tr>'
+    + '<tr class="total"><td>' + (remission ? 'Peak upfront cash (incl. refundable ABSD)' : 'Total upfront cash') + '</td><td>-' + fmt(peakUpfrontCash) + '</td></tr>'
+    + (remission ? '<tr><td colspan="2" class="hint" style="padding:2px 0 0">Bridging cash needed on completion is ' + fmt(peakUpfrontCash) + '; the ABSD refund (' + fmt(absdRefund) + ') arrives only after your first home is sold.</td></tr>' : '')
     + '<tr><td colspan="2" style="font-weight:500;font-size:12px;color:var(--color-text-secondary);padding-top:10px">HOLDING COSTS</td></tr>'
     + '<tr><td>Mortgage interest (' + holdMonths + ' months)</td><td>-' + fmt(totalInterest) + '</td></tr>'
     + '<tr><td>Mortgage principal repaid</td><td>' + (principalPaid>0 ? '-'+fmt(principalPaid) : '—') + '</td></tr>'
@@ -1380,6 +1425,7 @@ function calculate(scroll) {
 
   lastReport = {
     pd:pd, sd:sd, holdMonths:holdMonths, pp:pp, sp:sp, bsd:bsd, absd:absd, absdRate:absdRate,
+    absdFullRate:absdFullRate, absdPaid:absdPaid, absdRefund:absdRefund, peakUpfrontCash:peakUpfrontCash,
     remission:remission, agentBuyCost:agentBuyCost, legalBuy:legalBuy, totalEntryCost:totalEntryCost,
     totalInterest:totalInterest, totalPropTax:totalPropTax, totalMaint:totalMaint, isRental:isRental,
     totalRentalGross:totalRentalGross, totalRentalExp:totalRentalExp, ssdInfo:ssdInfo, ssd:ssd,
@@ -1498,10 +1544,11 @@ function buildReportText() {
   lines.push('UPFRONT (CASH)');
   lines.push('Down payment (equity): -' + fmt(r.equity));
   lines.push('BSD: -' + fmt(r.bsd));
-  lines.push('ABSD (' + r.absdRate + '%' + (r.remission ? ', remitted' : '') + '): ' + (r.absd > 0 ? '-' + fmt(r.absd) : '—'));
+  lines.push('ABSD (' + r.absdFullRate + '%' + (r.remission ? ', paid upfront then reclaimed' : '') + '): ' + (r.absdPaid > 0 ? '-' + fmt(r.absdPaid) : '—'));
+  if (r.remission) lines.push('ABSD remission refund (after selling first home): +' + fmt(r.absdRefund));
   lines.push('Buy-side agent commission: ' + (r.agentBuyCost > 0 ? '-' + fmt(r.agentBuyCost) : '—'));
   lines.push('Buy-side legal fees: ' + (r.legalBuy > 0 ? '-' + fmt(r.legalBuy) : '—'));
-  lines.push('Total upfront cash: -' + fmt(r.totalCashIn));
+  lines.push((r.remission ? 'Peak upfront cash (incl. refundable ABSD): -' : 'Total upfront cash: -') + fmt(r.peakUpfrontCash));
   lines.push('');
   lines.push('HOLDING COSTS');
   lines.push('Mortgage interest: -' + fmt(r.totalInterest));

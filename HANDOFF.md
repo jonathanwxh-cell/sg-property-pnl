@@ -248,3 +248,30 @@ stacked below on mobile). Do not turn this back into a labelled grid of fields.
 
 Everything in §4–§9 (tax rules, element ids, and the breakdown reconciliation invariant) is unchanged;
 the §9 regression check still passes for the prefilled example and after edits.
+
+
+---
+
+## 12. Correctness & modelling fixes (2026-07-02 QA pass)
+
+Eight issues from a QA review were fixed. Do not regress:
+
+1. ABSD - 16 Dec 2021 regime added. getAbsdRate previously jumped from Jul 2018 straight to Apr 2023,
+   undercharging 16 Dec 2021 to 26 Apr 2023 purchases. Regime columns are now
+   [Apr 2023+, 16 Dec 2021, 6 Jul 2018, 12 Jan 2013, 8 Dec 2011]. e.g. SC 2nd on 2023-04-26 = 17%
+   (S$272k on S$1.6m), PR 2nd = 25% (S$400k).
+2. ABSD remission = pay-now / refund-later. computePnl returns absdFullRate, absdPaid (charged upfront),
+   absdRefund, effective absd (0 when remitted) and peakUpfrontCash. The breakdown shows ABSD paid + a
+   refund line and a "Peak upfront cash (incl. refundable ABSD)" subtotal; Net P&L is unchanged (paid +
+   refund net to zero) and the table still reconciles.
+3. Net rental yield is occupancy-adjusted (uses rentalGrossPa); gross yield stays at full contractual
+   occupancy (market convention).
+4. Break-even handles valuation-based SSD. When the sale valuation exceeds the break-even price, SSD is
+   fixed (valuation x rate) not price-scaled; both regimes are solved and the consistent one is used.
+5. Input guards. Negative rates are floored at 0% and a sub-1-year loan tenure is clamped to 1 year
+   (a mortgage cannot be 0 years); both surface a warning in #inputWarn so bad input is not silently rosy.
+6. IRR floored at -100% when ending equity <= 0 (see section 11) - prevents a NaN that crashed buildLayman.
+7. SSD day-level cliff surfaced. getSsdInfo returns boundary/nextRate; the SSD note states the exact date
+   the tier ends, and the holding-period metric shows days + the cliff date.
+8. Live recalc covers valuation fields (they live inside .col-inputs), so purchase/sale valuation edits
+   update the P&L immediately - no stale results.

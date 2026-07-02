@@ -10,8 +10,10 @@ class names** (the JS depends on them). Do **not** regress the Singapore tax/fin
 - SSD **4 Jul 2025** regime (16/12/8/4 over 4 years; regime by purchase date; calendar-anniversary tiers)
 - BSD **6% top above $3M** (no 7% band)
 - **Net P&L = interest only** — no principal add-back — so the breakdown table sums exactly to the total
-- LTV **75/45/35** by property count; duties on **max(price, valuation)**; yields at **full occupancy**;
-  ABSD **FTA-national → Singapore-citizen** treatment
+- LTV **75/45/35** by property count; duties on **max(price, valuation)**; **gross** yield at full
+  occupancy but **net** yield occupancy-adjusted; ABSD **FTA-national → Singapore-citizen** treatment
+  and **all regimes incl. 16 Dec 2021**; **remission is pay-now/refund-later**; break-even handles
+  valuation-based SSD; IRR floors at **-100%** on equity wipe-out (see HANDOFF section 12)
 
 Verify with the browser-console reconciliation check in AGENTS.md ("Run & verify locally") **before and
 after** any change. There is no test suite. Benchmarks come from an external endpoint with an automatic

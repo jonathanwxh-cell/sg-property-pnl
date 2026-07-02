@@ -41,8 +41,15 @@ change or move, so treat it as a convenience reference, not a permanent contract
 3. **Net P&L** (`computePnl`): financing cost is **interest only** — do NOT add `loan`/subtract
    `outstandingLoan` (that double-counts principal and overstated profit ~2×). The breakdown table +
    email report must **sum exactly to Net P&L** (cash basis).
-4. **LTV** capped 75/45/35 by property count; **duties on max(price, valuation)**; **yields at full
-   occupancy**; **ABSD** FTA-national → Singapore-citizen treatment.
+4. **LTV** capped 75/45/35 by property count; **duties on max(price, valuation)**; **gross yield at full
+   occupancy but net yield occupancy-adjusted** (net moves with occupancy like the P&L); **ABSD**
+   FTA-national → Singapore-citizen treatment, and ABSD covers **every regime incl. 16 Dec 2021**
+   (SC 2nd 17 / 3rd 25; PR 2nd 25 / 3rd 30; FG 30; Entity 35).
+5. **ABSD remission** (SC/PR couple, 2nd home) is modelled **pay-now / refund-later**: ABSD is charged
+   upfront (peak/bridging cash) and shown as refunded, so Net P&L excludes it but "peak upfront cash"
+   includes it. **Break-even** accounts for SSD being fixed on a higher sale valuation. **IRR floors
+   at -100%** when a loss wipes out equity (avoids NaN). Negative rates / sub-1-year tenure are clamped
+   with a visible `#inputWarn` note. SSD shows the exact day-level cliff date.
 
 ## Run & verify locally (no build, no test suite)
 - Serve the folder and open `index.html`:
