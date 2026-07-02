@@ -60,7 +60,7 @@ change or move, so treat it as a convenience reference, not a permanent contract
   the endpoint is unreachable.
 - **There are no automated tests.** After any logic change, run the manual checks in HANDOFF.md §9.
   Fastest regression check — open the page, enter Purchase `1500000` / Sale `1800000` / 5-year hold,
-  click **Calculate P&L**, then paste this into the browser console (expect `reconciles: true`, no errors):
+  the results render live as you fill the story (there is no Calculate button), then paste this into the browser console (expect `reconciles: true`, no errors):
   ```js
   (function(){var r=document.querySelectorAll('#breakdownTable tbody tr'),s=0,g=null;
   function p(t){t=t.trim();if(t==='—'||t==='')return 0;var k=t[0]==='-'?-1:1;return k*Number(t.replace(/[^0-9.]/g,''));}
