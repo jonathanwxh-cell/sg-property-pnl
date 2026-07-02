@@ -40,7 +40,9 @@ numbers drift — `grep` for the name.
 
 ## 2. What the app is (architecture)
 
-- **One file**, no build/bundler. Open it in a browser and it works.
+- **One file**, no build/bundler. Run it by serving the folder (`python3 -m http.server 8000`, then
+  open `index.html`) or just opening the file directly. Works **offline** (benchmarks fall back to fixed
+  estimates). **There is no test suite** — verify manually via §9.
 - **Vanilla JS**, no framework. Core functions: `getBsdRate`, `getAbsdRate`, `getSsdInfo`,
   `buildAmort`, `computePnl` (pure P&L math), `calculate` (reads the form → renders results),
   `buildBenchmark` / `buildLayman`, `fetchLiveBenchmarks`, `buildReportText` / `copyReport` / `emailReport`.
@@ -178,7 +180,15 @@ match the repo's existing author identity (`git log` shows `Karen Xing`).
 ## 9. Regression checks (run these after any logic change)
 
 - **Breakdown reconciles:** after `calculate()`, sum the amount column of `#breakdownTable` (excluding the
-  subtotal `tr.total` and grand `tr.grand` rows) — it must equal the Net P&L shown in `tr.grand`.
+  subtotal `tr.total` and grand `tr.grand` rows) — it must equal the Net P&L shown in `tr.grand`. Paste
+  this in the browser console after clicking Calculate (expect `reconciles: true`, no errors):
+  ```js
+  (function(){var r=document.querySelectorAll('#breakdownTable tbody tr'),s=0,g=null;
+  function p(t){t=t.trim();if(t==='—'||t==='')return 0;var k=t[0]==='-'?-1:1;return k*Number(t.replace(/[^0-9.]/g,''));}
+  r.forEach(function(tr){var d=tr.querySelectorAll('td');if(d.length!==2)return;
+  if(tr.classList.contains('grand')){g=p(d[1].textContent);return;}if(tr.classList.contains('total'))return;s+=p(d[1].textContent);});
+  console.log({sum:Math.round(s),grand:g,reconciles:Math.abs(s-g)<2});})();
+  ```
 - **SSD boundaries** (purchase on/after 2025-07-04): 1yr→16, 2yr→12, 3yr→8, 4yr→4, 4yr+1day→0.
 - **BSD** at $6.5M = S$329,600 (6% top, not 7%). At $1.5M = S$44,600.
 - **LTV**: switching buyer to 2nd property caps LTV at 45%; 3rd+ at 35%.
