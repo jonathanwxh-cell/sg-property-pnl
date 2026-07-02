@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Singapore Property P&L Calculator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Reset & base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-tertiary: #5b6472;
+    --color-text-info: #185FA5;
+    --color-text-success: #0e7a54;
+    --color-text-warning: #96620f;
+    --color-text-danger: #c0272d;
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f4f6f9;
+    --color-background-info: #e7f0fa;
+    --color-background-success: #e6f4ec;
+    --color-background-warning: #fbefda;
+    --color-background-danger: #fcebec;
+    --color-border-tertiary: rgba(15,23,42,0.09);
+    --color-border-secondary: rgba(15,23,42,0.16);
+    --color-border-primary: rgba(15,23,42,0.28);
+    --border-radius-md: 10px;
+    --border-radius-lg: 16px;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --bg: #eceff4;
+    --accent: #185FA5;
+    --accent-strong: #124a82;
+    --accent-soft: #e7f0fa;
+    --accent-ring: rgba(24,95,165,0.30);
+    --r-pill: 999px;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.05);
+    --shadow: 0 10px 30px -12px rgba(15,23,42,0.18), 0 2px 6px -3px rgba(15,23,42,0.08);
+    --shadow-lg: 0 24px 60px -20px rgba(15,23,42,0.28);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-text-primary: #e9eef7;
+      --color-text-secondary: #a6b2c7;
+      --color-text-tertiary: #8593a9;
+      --color-text-info: #7fb2ee;
+      --color-text-success: #48c893;
+      --color-text-warning: #e6a53f;
+      --color-text-danger: #f0888c;
+      --color-background-primary: #121a2b;
+      --color-background-secondary: #1a2439;
+      --color-background-info: rgba(79,151,232,0.14);
+      --color-background-success: rgba(72,200,147,0.14);
+      --color-background-warning: rgba(230,165,63,0.15);
+      --color-background-danger: rgba(240,136,140,0.15);
+      --color-border-tertiary: rgba(255,255,255,0.09);
+      --color-border-secondary: rgba(255,255,255,0.17);
+      --color-border-primary: rgba(255,255,255,0.30);
+      --bg: #0a0f1c;
+      --accent: #4f97e8;
+      --accent-strong: #71adf0;
+      --accent-soft: rgba(79,151,232,0.15);
+      --accent-ring: rgba(79,151,232,0.42);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+      --shadow: 0 12px 32px -14px rgba(0,0,0,0.6);
+      --shadow-lg: 0 28px 64px -22px rgba(0,0,0,0.7);
+    }
+  }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--color-text-primary);
+    background:
+      radial-gradient(1100px 520px at 50% -260px, var(--accent-soft), transparent 72%),
+      var(--bg);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    padding: clamp(1.5rem, 4vw, 3rem) 1.15rem 5rem;
+    max-width: 840px;
+    margin: 0 auto;
+  }
+  header { margin-bottom: 1.75rem; }
+  h1 {
+    font-size: clamp(1.7rem, 3.4vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    text-wrap: balance;
+    margin-bottom: 0.55rem;
+  }
+  .sub { font-size: 15px; color: var(--color-text-secondary); max-width: 64ch; text-wrap: pretty; }
+  .sub + .sub { margin-top: 0.4rem; font-size: 13.5px; color: var(--color-text-tertiary); }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  }
+
+  /* ── Sections ── */
+  .section {
+    background: var(--color-background-primary);
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: clamp(1.15rem, 2.6vw, 1.6rem);
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    letter-spacing: .01em;
+    margin-bottom: 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+  }
+  .section-title::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-radius: 2.5px;
+    background: var(--accent);
+    flex: none;
+  }
+
+  /* ── Grids ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 560px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+
+  /* ── Form elements ── */
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  label { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); }
+  input, select {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    font-size: 15px;
+    font-family: inherit;
+    transition: border-color .15s ease, box-shadow .15s ease;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input[type="number"] { font-variant-numeric: tabular-nums; }
+  input:hover, select:hover { border-color: var(--color-text-tertiary); }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-ring);
+  }
+  input::placeholder { color: var(--color-text-tertiary); opacity: .65; }
+  input[readonly] { background: var(--color-background-secondary); color: var(--color-text-secondary); cursor: default; border-style: dashed; }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 38px;
+    cursor: pointer;
+  }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    height: 6px; padding: 0; border: none;
+    background: var(--color-background-secondary);
+    border-radius: var(--r-pill); cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent); border: 3px solid var(--color-background-primary);
+    box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .12s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
+    border: 3px solid var(--color-background-primary); box-shadow: var(--shadow-sm); cursor: pointer;
+  }
+  input[type="range"]:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+  .hint { font-size: 12.5px; line-height: 1.5; color: var(--color-text-tertiary); margin-top: 2px; }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px;
+    padding: 4px 11px;
+    border-radius: var(--r-pill);
+    font-weight: 600;
+    background: var(--color-background-secondary);
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .badge-info { background: var(--color-background-info); color: var(--color-text-info); }
+  .rate-badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: .75rem; }
+
+  /* ── Button ── */
+  .calc-btn {
+    width: 100%;
+    height: 52px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--border-radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    cursor: pointer;
+    margin-top: .75rem;
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    box-shadow: 0 6px 16px -6px var(--accent-ring), var(--shadow-sm);
+    transition: background .18s ease, transform .12s cubic-bezier(.22,1,.36,1), box-shadow .18s ease;
+  }
+  .calc-btn:hover { background: var(--accent-strong); transform: translateY(-1px); box-shadow: 0 10px 24px -6px var(--accent-ring); }
+  .calc-btn:active { transform: translateY(0); }
+  .calc-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+  .calc-btn-outline {
+    background: transparent;
+    color: var(--color-text-info);
+    border: 1px solid var(--color-border-secondary);
+    height: 44px;
+    box-shadow: none;
+  }
+  .calc-btn-outline:hover { background: var(--accent-soft); border-color: var(--accent); transform: none; box-shadow: none; }
+  .calc-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+
+  /* ── Results ── */
+  .results { display: none; }
+  #results { animation: rise .5s cubic-bezier(.22,1,.36,1) both; }
+  .divider { height: 1px; background: var(--color-border-tertiary); margin: 1.5rem 0; border: none; }
+
+  /* ── Metric cards ── */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+  .metric {
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 1rem 1.15rem;
+    animation: rise .45s cubic-bezier(.22,1,.36,1) both;
+  }
+  .metric:nth-child(2) { animation-delay: .05s; }
+  .metric:nth-child(3) { animation-delay: .1s; }
+  .metric:nth-child(4) { animation-delay: .15s; }
+  .metric:nth-child(n+5) { animation-delay: .2s; }
+  .metric-label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 6px; font-weight: 500; }
+  .metric-val { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .metric-val.pos { color: var(--color-text-success); }
+  .metric-val.neg { color: var(--color-text-danger); }
+  #metricGrid .metric:first-child {
+    grid-column: 1 / -1;
+    background: var(--color-background-primary);
+    border-color: var(--color-border-secondary);
+    padding: 1.4rem 1.5rem;
+    box-shadow: var(--shadow-sm);
+  }
+  #metricGrid .metric:first-child .metric-label { font-size: 13px; }
+  #metricGrid .metric:first-child .metric-val { font-size: clamp(2rem, 6vw, 2.7rem); }
+
+  /* ── Break-even bar ── */
+  .breakeven-bar {
+    position: relative;
+    height: 32px;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    margin: .85rem 0;
+    background: var(--color-background-secondary);
+  }
+  .breakeven-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: var(--border-radius-md); transition: width .7s cubic-bezier(.22,1,.36,1); }
+  .breakeven-label { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 600; }
+
+  /* ── Collapsible breakdown ── */
+  .collapsible-header {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0;
+  }
+  .collapsible-header .section-title { margin-bottom: 0; }
+  .chevron { font-size: 18px; transition: transform .25s ease; color: var(--color-text-tertiary); }
+
+  /* ── Breakdown table ── */
+  .breakdown-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .breakdown-table td, .breakdown-table th { padding: 9px 6px; border-bottom: 1px solid var(--color-border-tertiary); }
+  .breakdown-table th { color: var(--color-text-tertiary); font-weight: 600; text-align: left; }
+  .breakdown-table td:last-child, .breakdown-table th:last-child { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .breakdown-table tr.total td { font-weight: 600; border-top: 1px solid var(--color-border-primary); border-bottom: none; }
+  .breakdown-table tr.grand td { font-weight: 700; font-size: 15px; background: var(--accent-soft); }
+  .breakdown-table tr.grand td:first-child { border-radius: var(--border-radius-md) 0 0 var(--border-radius-md); }
+  .breakdown-table tr.grand td:last-child { border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; }
+
+  /* ── SSD note ── */
+  .ssd-note {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--color-text-warning);
+    background: var(--color-background-warning);
+    padding: 10px 14px;
+    border-radius: var(--border-radius-md);
+    margin-top: .75rem;
+  }
+
+  /* ── Benchmark section ── */
+  .benchmark-wrap { position: relative; width: 100%; height: 300px; margin: 1.25rem 0; }
+  .bmark-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 1rem;
+  }
+  .bmark-card {
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 1rem 1.15rem;
+    background: var(--color-background-secondary);
+  }
+  .bmark-name { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 4px; font-weight: 500; }
+  .bmark-ret { font-family: var(--font-mono); font-size: 1.15rem; font-weight: 600; margin-bottom: 4px; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+  .bmark-total { font-size: 12px; color: var(--color-text-tertiary); }
+  .bmark-tag { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: var(--r-pill); margin-top: 8px; display: inline-block; }
+  .bmark-tag.win { background: var(--color-background-success); color: var(--color-text-success); }
+  .bmark-tag.lose { background: var(--color-background-danger); color: var(--color-text-danger); }
+
+  /* ── Layman box ── */
+  .layman-box {
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 1.15rem 1.35rem;
+    margin-top: 1.25rem;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .layman-box .lhead { font-weight: 600; margin-bottom: .4rem; font-size: 15px; color: var(--color-text-primary); }
+  .layman-box p { color: var(--color-text-secondary); }
+  .verdict {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: var(--r-pill);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: .85rem;
+  }
+  .verdict.good { background: var(--color-background-success); color: var(--color-text-success); }
+  .verdict.ok   { background: var(--color-background-warning); color: var(--color-text-warning); }
+  .verdict.bad  { background: var(--color-background-danger);  color: var(--color-text-danger);  }
+
+  /* ── Disclaimer banner ── */
+  .disclaimer-banner {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    background: var(--color-background-primary);
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 12px 14px;
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* ── Glossary terms (abbr) ── */
+  abbr.term { text-decoration: underline dotted; text-underline-offset: 2px; cursor: help; font-weight: 500; }
+
+  /* ── Field error ── */
+  .field-error { font-size: 12.5px; color: var(--color-text-danger); margin-top: 4px; display: none; }
+  .field-note  { font-size: 12.5px; color: var(--color-text-info); margin-top: 4px; display: none; }
+  input.invalid { border-color: var(--color-text-danger); box-shadow: 0 0 0 3px var(--color-background-danger); }
+
+  /* ── Checkbox row ── */
+  .checkbox-row {
+    display: flex; align-items: flex-start; gap: 10px; margin-top: .85rem;
+    padding: .85rem 1rem;
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+  }
+  .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 1px; flex: none; accent-color: var(--accent); cursor: pointer; }
+  .checkbox-row label { cursor: pointer; font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; }
+
+  /* ── Estimate-only tag on results ── */
+  .estimate-tag {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text-tertiary);
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: var(--r-pill);
+    padding: 5px 12px;
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Property P&amp;L calculator</h1>
+  <p class="sub">Singapore residential — your net profit or loss after stamp duties, mortgage &amp; transaction costs.</p>
+  <p class="sub">For buyers, sellers and investors weighing a transaction — fill in the form for an estimate in a couple of minutes.</p>
+</header>
+
+<div class="disclaimer-banner">
+  ⓘ This is an <strong>estimate only</strong>, not financial advice. Stamp duty rates (<abbr class="term" title="Additional Buyer's Stamp Duty">ABSD</abbr>, <abbr class="term" title="Buyer's Stamp Duty">BSD</abbr>, <abbr class="term" title="Seller's Stamp Duty">SSD</abbr>) are hardcoded as of the Apr 2023 (ABSD/BSD) and Jul 2025 (SSD) revisions — always verify current rates against <a href="https://www.iras.gov.sg" target="_blank" rel="noopener">IRAS</a> before transacting. It also excludes <abbr class="term" title="Central Provident Fund">CPF</abbr> (including the accrued interest you must refund to CPF on sale), rental income tax, and loan-eligibility limits (<abbr class="term" title="Total Debt Servicing Ratio">TDSR</abbr>/<abbr class="term" title="Mortgage Servicing Ratio">MSR</abbr>).
+</div>
+
+<!-- ── Buyer profile ── -->
+<div class="section">
+  <div class="section-title">Buyer profile</div>
+  <div class="grid2">
+    <div class="field">
+      <label for="buyerType">Buyer type</label>
+      <select id="buyerType" onchange="updateAbsdHint()">
+        <option value="SC">Singapore Citizen (SC)</option>
+        <option value="PR">Singapore PR</option>
+        <option value="FG">Foreigner</option>
+        <option value="EN">Entity (Company)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="propCount">Which property is this for you?</label>
+      <select id="propCount" onchange="updateAbsdHint()">
+        <option value="1">1st property</option>
+        <option value="2">2nd property</option>
+        <option value="3">3rd or more</option>
+      </select>
+    </div>
+  </div>
+  <div id="buyerTypeNote" class="hint" style="margin-top:.5rem"></div>
+  <div class="checkbox-row" id="remissionRow" style="display:none">
+    <input type="checkbox" id="absdRemission" onchange="updateAbsdHint()">
+    <label for="absdRemission">Married couple (at least one Singapore Citizen) selling your current home within 6 months of this purchase? (<abbr class="term" title="Additional Buyer's Stamp Duty">ABSD</abbr> remission for a couple replacing their only residential property — you pay ABSD upfront and claim it back after selling the first home)</label>
+  </div>
+  <div class="checkbox-row" id="ftaRow" style="display:none">
+    <input type="checkbox" id="ftaNational" onchange="updateAbsdHint()">
+    <label for="ftaNational">National of the USA, or a national/PR of Iceland, Liechtenstein, Norway or Switzerland? (Free Trade Agreement — accorded the same stamp-duty treatment as a Singapore Citizen)</label>
+  </div>
+  <div class="rate-badge-row" id="absdHint"></div>
+</div>
+
+<!-- ── Transaction dates ── -->
+<div class="section">
+  <div class="section-title">Transaction dates</div>
+  <div class="grid2">
+    <div class="field">
+      <label for="purchaseDate">Purchase date (OTP exercise / S&amp;P date)</label>
+      <input type="date" id="purchaseDate" onchange="updateAbsdHint()">
+      <span class="hint">Determines <abbr class="term" title="Additional Buyer's Stamp Duty">ABSD</abbr> &amp; <abbr class="term" title="Seller's Stamp Duty">SSD</abbr> rate schedule</span>
+    </div>
+    <div class="field">
+      <label for="saleDate">Sale date (intended)</label>
+      <input type="date" id="saleDate" onchange="updateAbsdHint()">
+    </div>
+  </div>
+  <div id="dateOrderError" class="field-error" style="display:none">⚠ Sale date must be after purchase date.</div>
+  <div id="ssdNote" class="ssd-note" style="display:none"></div>
+</div>
+
+<!-- ── Purchase details ── -->
+<div class="section">
+  <div class="section-title">Purchase details</div>
+  <div class="grid2">
+    <div class="field">
+      <label for="purchaseBasis">Price basis</label>
+      <select id="purchaseBasis" onchange="togglePriceBasis('purchase')">
+        <option value="lump">Lump sum (S$)</option>
+        <option value="psf">Price per sq ft (<abbr class="term" title="Per Square Foot — the common way Singapore property is quoted">PSF</abbr>)</option>
+      </select>
+    </div>
+    <div class="field" id="purchaseLumpField">
+      <label for="purchasePrice">Purchase price (S$)</label>
+      <input type="number" id="purchasePrice" min="0" placeholder="e.g. 1500000" oninput="updateBsdHint();recalcLoan()">
+    </div>
+    <div class="field" id="purchaseSqftField" style="display:none">
+      <label for="purchaseSqft">Total square footage (sqft)</label>
+      <input type="number" id="purchaseSqft" min="0" placeholder="e.g. 1000" oninput="updatePriceFromBasis('purchase')">
+    </div>
+    <div class="field" id="purchasePsfField" style="display:none">
+      <label for="purchasePricePsf">Price (S$ psf)</label>
+      <input type="number" id="purchasePricePsf" min="0" placeholder="e.g. 1500" oninput="updatePriceFromBasis('purchase')">
+    </div>
+  </div>
+  <div class="grid3" style="margin-top:12px">
+    <div class="field">
+      <label for="ltvPct">Loan-to-value (<abbr class="term" title="Loan-to-Value — the proportion of the purchase price financed by a bank loan">LTV</abbr> %)</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="range" id="ltvSlider" min="0" max="75" value="75" step="1" style="flex:1" oninput="updateLtvFromSlider()" aria-label="Loan-to-value percentage slider">
+        <input type="number" id="ltvPct" value="75" min="0" max="75" step="1" style="width:60px;flex:none" oninput="updateLtvFromInput()">
+        <span style="font-size:13px;color:var(--color-text-secondary)">%</span>
+      </div>
+      <span class="hint" id="ltvHint">Max 75% (MAS limit for a 1st housing loan; lower if tenure &gt; 30 yrs or age &gt; 65 at maturity)</span>
+    </div>
+    <div class="field">
+      <label for="loanAmt">Loan amount (S$)</label>
+      <input type="number" id="loanAmt" placeholder="Auto from LTV" readonly aria-readonly="true">
+    </div>
+    <div class="field">
+      <label for="loanTenure">Loan tenure (years)</label>
+      <input type="number" id="loanTenure" placeholder="30" min="1" max="35">
+    </div>
+    <div class="field">
+      <label for="fixedRate">Fixed rate (% p.a.)</label>
+      <input type="number" id="fixedRate" min="0" placeholder="e.g. 2.75" step="0.01">
+    </div>
+    <div class="field">
+      <label for="fixedPeriod">Fixed rate period (years)</label>
+      <input type="number" id="fixedPeriod" placeholder="e.g. 3" min="0">
+      <span class="hint">After this period, the loan switches to the floating rate below</span>
+    </div>
+    <div class="field">
+      <label for="floatRate">Floating rate after fixed (% p.a.)</label>
+      <input type="number" id="floatRate" min="0" placeholder="e.g. 3.5" step="0.01">
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="field">
+      <label for="legalBuy">Buy-side legal fees (S$)</label>
+      <input type="number" id="legalBuy" min="0" placeholder="e.g. 3500">
+    </div>
+    <div class="field">
+      <label for="purchaseValuation">Market valuation at purchase (S$, optional)</label>
+      <input type="number" id="purchaseValuation" min="0" placeholder="only if higher than price" oninput="updateBsdHint()">
+      <span class="hint"><abbr class="term" title="Buyer's Stamp Duty">BSD</abbr> &amp; <abbr class="term" title="Additional Buyer's Stamp Duty">ABSD</abbr> are charged on the higher of price or market value — leave blank if buying at market.</span>
+    </div>
+  </div>
+  <div id="tenureWarning" class="field-note" style="display:none"></div>
+  <div id="bsdHint" class="rate-badge-row" style="margin-top:.75rem"></div>
+</div>
+
+<!-- ── Sale details ── -->
+<div class="section">
+  <div class="section-title">Sale details</div>
+  <div class="grid2">
+    <div class="field">
+      <label for="saleBasis">Price basis</label>
+      <select id="saleBasis" onchange="togglePriceBasis('sale')">
+        <option value="lump">Lump sum (S$)</option>
+        <option value="psf">Price per sq ft (<abbr class="term" title="Per Square Foot — the common way Singapore property is quoted">PSF</abbr>)</option>
+      </select>
+    </div>
+    <div class="field" id="saleLumpField">
+      <label for="salePrice">Expected sale price (S$)</label>
+      <input type="number" id="salePrice" min="0" placeholder="e.g. 1800000">
+    </div>
+    <div class="field" id="saleSqftField" style="display:none">
+      <label for="saleSqft">Total square footage (sqft)</label>
+      <input type="number" id="saleSqft" min="0" placeholder="e.g. 1000" oninput="updatePriceFromBasis('sale')">
+    </div>
+    <div class="field" id="salePsfField" style="display:none">
+      <label for="salePricePsf">Price (S$ psf)</label>
+      <input type="number" id="salePricePsf" min="0" placeholder="e.g. 1800" oninput="updatePriceFromBasis('sale')">
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="field">
+      <label for="agentComm">Sell-side agent commission (%)</label>
+      <input type="number" id="agentComm" min="0" placeholder="e.g. 1" step="0.1">
+    </div>
+    <div class="field">
+      <label for="legalSell">Sell-side legal fees (S$)</label>
+      <input type="number" id="legalSell" min="0" placeholder="e.g. 3000">
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="field">
+      <label for="saleValuation">Market valuation at sale (S$, optional)</label>
+      <input type="number" id="saleValuation" min="0" placeholder="only if higher than price">
+      <span class="hint"><abbr class="term" title="Seller's Stamp Duty">SSD</abbr> is charged on the higher of sale price or market value.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Property usage & other costs ── -->
+<div class="section">
+  <div class="section-title">Property usage &amp; other costs</div>
+  <div class="grid2">
+    <div class="field">
+      <label for="usagePurpose">Purpose</label>
+      <select id="usagePurpose" onchange="toggleRentalSection()">
+        <option value="own">Own stay</option>
+        <option value="rent">Rental / investment</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="agentBuy">Buy-side agent commission (%)</label>
+      <input type="number" id="agentBuy" min="0" placeholder="e.g. 1" step="0.1">
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="field">
+      <label for="propTax">Annual property tax (S$)</label>
+      <input type="number" id="propTax" min="0" placeholder="e.g. 4200">
+      <span class="hint" id="propTaxHint">IRAS owner-occupier property tax uses different (lower) progressive rates than non-owner-occupied — use the rate matching the purpose selected.</span>
+    </div>
+    <div class="field">
+      <label for="maintenance">Annual maintenance fees (S$)</label>
+      <input type="number" id="maintenance" min="0" placeholder="e.g. 3600">
+    </div>
+  </div>
+  <!-- Rental sub-section (shown only when purpose = rent) -->
+  <div id="rentalSection" style="display:none;margin-top:1rem;padding-top:1rem;border-top:0.5px solid var(--color-border-tertiary)">
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-secondary);margin-bottom:.75rem">Rental details</div>
+    <div class="grid3">
+      <div class="field">
+        <label for="monthlyRent">Monthly rental income (S$)</label>
+        <input type="number" id="monthlyRent" min="0" placeholder="e.g. 4500" oninput="updateRentalCalc()">
+      </div>
+      <div class="field">
+        <label for="occupancy">Expected occupancy (%)</label>
+        <input type="number" id="occupancy" placeholder="90" min="0" max="100" value="90" oninput="updateRentalCalc()">
+      </div>
+      <div class="field">
+        <label for="rentalExpenses">Annual rental expenses (S$)</label>
+        <input type="number" id="rentalExpenses" min="0" placeholder="e.g. 1200">
+        <span class="hint">Agent fees, furnishing upkeep, repairs</span>
+      </div>
+    </div>
+    <div id="rentalCalcHint" class="rate-badge-row"></div>
+  </div>
+</div>
+
+<button class="calc-btn" onclick="calculate()">
+  <i class="ti ti-calculator" aria-hidden="true"></i> Calculate P&amp;L
+</button>
+
+<!-- ════════════════ RESULTS ════════════════ -->
+<div class="results" id="results" aria-live="polite">
+  <div class="divider"></div>
+  <span class="estimate-tag">ⓘ Estimate only — not financial advice</span>
+
+  <!-- Summary metrics -->
+  <div class="section">
+    <div class="section-title">P&amp;L summary</div>
+    <div class="metric-grid" id="metricGrid"></div>
+    <p class="hint" style="margin-bottom:.75rem">ⓘ "Annualised return" is a simplified estimate (CAGR on equity) — it treats the whole holding period as one lump sum rather than your actual monthly mortgage payments, so it is not the same as a bank-quoted IRR/XIRR. It is also a leveraged return (on your equity), so it is not directly comparable to the unleveraged benchmark returns below.</p>
+    <div id="breakeven"></div>
+  </div>
+
+  <!-- Collapsible breakdown -->
+  <div class="section">
+    <div class="collapsible-header" onclick="toggleBreakdown()">
+      <div class="section-title">Cost &amp; proceeds breakdown</div>
+      <i class="ti ti-chevron-down chevron" id="breakdownChevron" aria-hidden="true"></i>
+    </div>
+    <div id="breakdownBody" style="display:none;margin-top:1rem">
+      <table class="breakdown-table" id="breakdownTable"></table>
+    </div>
+  </div>
+
+  <!-- Scenario analysis -->
+  <div class="section">
+    <div class="section-title">Scenario analysis</div>
+    <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem">
+      Try "what if" questions — what if interest rates rise, or you sell for less than planned — to see how your profit changes. Each slider works independently of the others.<br>
+      <strong>These sliders use the result from your last "Calculate P&amp;L" click, not the live form above.</strong> If you edit the form, click Calculate again before trusting these numbers.
+    </p>
+    <div id="scenStaleWarning" class="field-error" style="display:none">⚠ The form above has changed since you last clicked "Calculate P&amp;L" — these scenario numbers are still based on the older calculation. Click Calculate P&amp;L again to refresh the base case.</div>
+
+    <div class="field" style="margin-bottom:1rem">
+      <label for="scenLtv">Loan-to-value <span id="scenLtvLabel" aria-live="polite" style="color:var(--color-text-primary);font-weight:500"></span></label>
+      <input type="range" id="scenLtv" min="0" max="75" step="1" oninput="updateScenario()">
+    </div>
+    <div class="field" style="margin-bottom:1rem">
+      <label for="scenRateDelta">Interest rate change (applied to both fixed &amp; floating) <span id="scenRateDeltaLabel" aria-live="polite" style="color:var(--color-text-primary);font-weight:500"></span></label>
+      <input type="range" id="scenRateDelta" min="-3" max="3" step="0.25" value="0" oninput="updateScenario()">
+    </div>
+    <div class="field" style="margin-bottom:1rem">
+      <label for="scenPsfDelta">Change in exit <abbr class="term" title="Per Square Foot">PSF</abbr> / sale price <span id="scenPsfDeltaLabel" aria-live="polite" style="color:var(--color-text-primary);font-weight:500"></span></label>
+      <input type="range" id="scenPsfDelta" min="-20" max="20" step="1" value="0" oninput="updateScenario()">
+      <span class="hint">Simulates selling at a higher or lower price per square foot than assumed in the base case, scaling the sale price proportionally.</span>
+    </div>
+
+    <button type="button" class="calc-btn calc-btn-outline" onclick="resetScenario()">Reset to base case</button>
+
+    <div class="metric-grid" style="margin-top:1rem">
+      <div class="metric">
+        <div class="metric-label">Original profit/loss (base case)</div>
+        <div class="metric-val" id="scenBaseNetPnl"></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Original yearly return rate (base case)</div>
+        <div class="metric-val" id="scenBaseIrr"></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">New total profit/loss (cumulative Net P&amp;L)</div>
+        <div class="metric-val" id="scenRevisedNetPnl"></div>
+        <div style="font-size:12px;margin-top:2px" id="scenNetPnlDelta"></div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">New yearly return rate (annualised return)</div>
+        <div class="metric-val" id="scenRevisedIrr"></div>
+        <div style="font-size:12px;margin-top:2px" id="scenIrrDelta"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Benchmark comparison -->
+  <div class="section">
+    <div class="section-title">Benchmark comparison</div>
+    <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.75rem">
+      If the same equity (down payment + upfront costs) had been invested elsewhere over the same holding period
+    </p>
+    <p class="hint" style="margin-bottom:.75rem">STI ETF, S&amp;P 500, and the SGS T-bill rate load live automatically — no setup or API key needed. If the live feed is unavailable, the chart falls back to fixed long-run averages.</p>
+    <div id="liveDataStatus" class="rate-badge-row" style="margin-bottom:.5rem"></div>
+    <div class="hint" style="margin-bottom:.75rem">ⓘ All three benchmarks load live: STI ETF (ES3) trailing return from SGX, S&amp;P 500 (SPY) converted to Singapore dollars so it is comparable to this SGD property, and the SGS 6-month T-bill from the latest MAS auction cut-off, refreshed a few times a day. STI and S&amp;P are price-return CAGRs.</div>
+    <div class="bmark-cards" id="bmarkCards"></div>
+    <div class="benchmark-wrap">
+      <canvas id="benchmarkChart" role="img" aria-label="Bar chart comparing total gain across property and benchmark investments"></canvas>
+    </div>
+    <div class="layman-box" id="laymanBox"></div>
+  </div>
+
+  <!-- Save / email report -->
+  <div class="section">
+    <div class="section-title">Save or send this report</div>
+    <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.9rem">A plain-text copy of the P&amp;L summary, the full cost breakdown, and the benchmark comparison. <strong>Copy it</strong> to paste anywhere, or <strong>open it as a pre-filled email</strong> — nothing is sent from this page or stored anywhere.</p>
+    <div class="field" style="margin-bottom:.9rem">
+      <label for="emailTo">Email address <span style="color:var(--color-text-tertiary);font-weight:400">(only needed for the email option)</span></label>
+      <input type="email" id="emailTo" placeholder="you@example.com" autocomplete="email" inputmode="email">
+    </div>
+    <div class="grid2">
+      <button type="button" class="calc-btn calc-btn-outline" style="margin-top:0" onclick="copyReport()">
+        <i class="ti ti-copy" aria-hidden="true"></i> Copy report
+      </button>
+      <button type="button" class="calc-btn" style="margin-top:0" onclick="emailReport()">
+        <i class="ti ti-mail" aria-hidden="true"></i> Open as email
+      </button>
+    </div>
+    <div id="emailStatus" class="field-note" style="display:none;margin-top:.85rem" aria-live="polite"></div>
+    <textarea id="reportFallback" readonly aria-label="Report text" style="display:none;width:100%;margin-top:.75rem;min-height:180px;padding:12px;border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-mono);font-size:12px;line-height:1.5;resize:vertical"></textarea>
+    <span class="hint" style="margin-top:.6rem">The email option opens your device's mail app with everything pre-filled — you press send. If no mail app opens, use <strong>Copy report</strong> instead.</span>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+/* ─────────────────────────────────────────────
+   Utilities
+───────────────────────────────────────────── */
+var benchmarkChartInst = null;
+var latestCalcToken = 0;
+
+var fmt    = function(v) { return 'S$' + Math.round(Math.abs(v)).toLocaleString(); };
+var fmtSgn = function(v) { return (v >= 0 ? '+' : '-') + fmt(v); };
+
+/* ─────────────────────────────────────────────
+   Stamp duty calculations
+───────────────────────────────────────────── */
+function getBsdRate(price, date) {
+  var d = new Date(date);
+  var feb23 = new Date('2023-02-15');
+  if (d >= feb23) {
+    return calcProg(price, [[180000,1],[180000,2],[640000,3],[500000,4],[1500000,5],[Infinity,6]]);
+  }
+  return calcProg(price, [[180000,1],[180000,2],[640000,3],[Infinity,4]]);
+}
+
+function calcProg(amount, bands) {
+  var tax = 0, rem = amount;
+  for (var i = 0; i < bands.length; i++) {
+    if (rem <= 0) break;
+    var chunk = Math.min(rem, bands[i][0]);
+    tax += chunk * bands[i][1] / 100;
+    rem -= chunk;
+  }
+  return tax;
+}
+
+function getAbsdRate(bt, pc, date, remission, fta) {
+  var d = new Date(date), p = parseInt(pc);
+  var apr23 = new Date('2023-04-27'), jul18 = new Date('2018-07-06');
+  var jan13 = new Date('2013-01-12'), dec11 = new Date('2011-12-08');
+  if (bt === 'EN') return d>=apr23?65:d>=jul18?25:d>=jan13?15:d>=dec11?10:0;
+  /* Under Free Trade Agreements, nationals of the USA and nationals/PRs of Iceland, Liechtenstein,
+     Norway or Switzerland get the same stamp-duty treatment as a Singapore Citizen. */
+  if (fta && bt === 'FG') bt = 'SC';
+  if (remission && (bt === 'SC' || bt === 'PR') && p === 2) return 0;
+  var tbl = {
+    SC: { 1:[0,0,0,0],   2:[20,12,7,3],  3:[30,15,10,3] },
+    PR: { 1:[5,5,5,0],   2:[30,15,10,3], 3:[35,15,10,3] },
+    FG: { 1:[60,20,15,10],2:[60,20,15,10],3:[60,20,15,10] }
+  };
+  var k = p >= 3 ? 3 : p, row = tbl[bt][k];
+  return d>=apr23?row[0]:d>=jul18?row[1]:d>=jan13?row[2]:d>=dec11?row[3]:0;
+}
+
+function getSsdInfo(pd, sd) {
+  var pDate = new Date(pd), sDate = new Date(sd);
+  /* IRAS sets the SSD tier by calendar holding period (acquisition date to disposal date):
+     disposing on or before the Nth anniversary counts as "held up to N years". Using date
+     anniversaries (not a 365.25-day count) keeps exact-anniversary and leap-year sales in the
+     correct tier. The applicable regime is fixed by the purchase date. */
+  var jul25 = new Date('2025-07-04'), mar17 = new Date('2017-03-11'), jan11 = new Date('2011-01-14');
+  var within = function(n) { var d = new Date(pDate); d.setFullYear(d.getFullYear() + n); return sDate <= d; };
+  if (pDate >= jul25) {
+    if (within(1)) return { rate:16, label:'SSD 16% (held ≤1yr, Jul 2025+ regime)' };
+    if (within(2)) return { rate:12, label:'SSD 12% (held ≤2yr)' };
+    if (within(3)) return { rate:8,  label:'SSD 8% (held ≤3yr)' };
+    if (within(4)) return { rate:4,  label:'SSD 4% (held ≤4yr)' };
+    return { rate:0, label:'' };
+  } else if (pDate >= mar17) {
+    if (within(1)) return { rate:12, label:'SSD 12% (held ≤1yr, Mar 2017 regime)' };
+    if (within(2)) return { rate:8,  label:'SSD 8% (held ≤2yr)' };
+    if (within(3)) return { rate:4,  label:'SSD 4% (held ≤3yr)' };
+    return { rate:0, label:'' };
+  } else if (pDate >= jan11) {
+    if (within(1)) return { rate:16, label:'SSD 16% (held ≤1yr, Jan 2011 regime)' };
+    if (within(2)) return { rate:12, label:'SSD 12% (held ≤2yr)' };
+    if (within(3)) return { rate:8,  label:'SSD 8% (held ≤3yr)' };
+    if (within(4)) return { rate:4,  label:'SSD 4% (held ≤4yr)' };
+    return { rate:0, label:'' };
+  } else {
+    return within(1) ? { rate:3, label:'SSD 3% (held ≤1yr, pre-2011)' } : { rate:0, label:'' };
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Mortgage amortisation
+───────────────────────────────────────────── */
+function buildAmort(principal, annRate, tenureYrs, fixedPeriod, floatRate) {
+  var totalM = tenureYrs * 12, fixedM = (fixedPeriod || 0) * 12;
+  var mPmt = function(r, p, n) { return r === 0 ? p/n : p*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1); };
+  var bal = principal, rows = [], cumInt = 0, cumPrin = 0;
+  for (var m = 1; m <= totalM; m++) {
+    var r = m <= fixedM ? annRate/100/12 : floatRate/100/12;
+    var remain = totalM - m + 1;
+    var pmt = mPmt(r, bal, remain);
+    var intP = bal * r, prinP = pmt - intP;
+    bal = Math.max(0, bal - prinP);
+    cumInt += intP; cumPrin += prinP;
+    rows.push({ month:m, payment:pmt, principal:prinP, interest:intP, balance:bal, cumInt:cumInt, cumPrin:cumPrin });
+  }
+  return rows;
+}
+
+function getHoldMonths(pd, sd) {
+  return Math.round((new Date(sd) - new Date(pd)) / (1000*60*60*24*30.44));
+}
+
+/* ─────────────────────────────────────────────
+   UI helpers
+───────────────────────────────────────────── */
+function updateAbsdHint() {
+  var bt        = document.getElementById('buyerType').value;
+  var pcSelect  = document.getElementById('propCount');
+  var pc        = pcSelect.value;
+  var pd        = document.getElementById('purchaseDate').value;
+  var sd        = document.getElementById('saleDate').value;
+  var el        = document.getElementById('absdHint');
+  var ssdEl     = document.getElementById('ssdNote');
+  var dateErrEl = document.getElementById('dateOrderError');
+  var remRow    = document.getElementById('remissionRow');
+  var ftaRow    = document.getElementById('ftaRow');
+  var remission = document.getElementById('absdRemission').checked;
+
+  /* Entity buyers pay a flat ABSD regardless of property count — disable that field to avoid confusion */
+  pcSelect.disabled = (bt === 'EN');
+
+  /* Keep the LTV cap in sync with the buyer's property count (75/45/35) */
+  updateLtvCap();
+
+  /* FTA option is only for foreigners; when ticked they get Singapore-Citizen ABSD treatment */
+  ftaRow.style.display = (bt === 'FG') ? 'flex' : 'none';
+  if (bt !== 'FG') document.getElementById('ftaNational').checked = false;
+  var fta   = document.getElementById('ftaNational').checked;
+  var effBt = (bt === 'FG' && fta) ? 'SC' : bt;   // effective buyer type after FTA treatment
+
+  /* ABSD remission applies to SC/PR (incl. FTA-treated) buying their 2nd property while disposing of
+     the first — gate on the effective type so it never shows a misleading "remitted" label for a
+     buyer whose rate was never actually reduced */
+  remRow.style.display = ((effBt === 'SC' || effBt === 'PR') && pc === '2') ? 'flex' : 'none';
+  if (remRow.style.display === 'none') {
+    remission = false;
+    /* Force-uncheck so the box doesn't silently reappear pre-checked if the row becomes visible again later */
+    document.getElementById('absdRemission').checked = false;
+  }
+
+  /* Explain disabled/hidden fields immediately — not gated on purchase date being filled — so a
+     buyer never sees a field vanish/grey out with zero on-screen explanation */
+  var noteEl = document.getElementById('buyerTypeNote');
+  if (bt === 'EN') {
+    noteEl.textContent = 'Entities pay a flat ABSD rate no matter how many properties they own, so "which property" doesn\'t apply — that field is disabled.';
+  } else if (bt === 'FG') {
+    noteEl.textContent = fta
+      ? 'Treated as a Singapore Citizen for stamp duty under a Free Trade Agreement, so ABSD follows the SC rates by property count.'
+      : 'Foreigners pay a flat 60% ABSD regardless of property count — unless covered by a Free Trade Agreement (tick the box below).';
+  } else {
+    noteEl.textContent = '';
+  }
+
+  if (!pd) { el.innerHTML = ''; ssdEl.style.display = 'none'; dateErrEl.style.display = 'none'; return; }
+
+  var absd = getAbsdRate(bt, pc, pd, remission, fta);
+  var pp   = parseFloat(document.getElementById('purchasePrice').value);
+  var pvEl = document.getElementById('purchaseValuation');
+  var pv   = pvEl ? (parseFloat(pvEl.value) || 0) : 0;
+  var bsd  = pp ? getBsdRate(Math.max(pp, pv), pd) : null;
+  var d    = new Date(pd);
+  var regime = d>=new Date('2023-04-27')?'Apr 2023':d>=new Date('2018-07-06')?'Jul 2018':d>=new Date('2013-01-12')?'Jan 2013':d>=new Date('2011-12-08')?'Dec 2011':'Pre-Dec 2011';
+  var html = '<span class="badge badge-info">ABSD: ' + absd + '%</span>';
+  if (bt === 'EN') html += ' <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">Flat rate — property count not applicable for entities</span>';
+  if (bsd !== null) html += ' <span class="badge badge-info">BSD: ' + fmt(bsd) + '</span>';
+  html += ' <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">rates effective ' + regime + '</span>';
+  el.innerHTML = html;
+
+  if (!sd) { ssdEl.style.display = 'none'; dateErrEl.style.display = 'none'; return; }
+
+  if (new Date(sd) <= new Date(pd)) {
+    dateErrEl.style.display = 'block';
+    ssdEl.style.display = 'none';
+    return;
+  }
+  dateErrEl.style.display = 'none';
+
+  var ssd = getSsdInfo(pd, sd);
+  if (ssd.rate > 0) {
+    ssdEl.style.display = 'block';
+    ssdEl.innerHTML = '⚠ ' + ssd.label + ' — Seller\'s Stamp Duty (SSD) applies at ' + ssd.rate + '% of sale price. SSD is charged to discourage short-term flipping; it steps down the longer you hold, and drops to 0% once you\'ve held long enough. Pushing your sale date later would reduce or remove this charge.';
+  } else {
+    ssdEl.style.display = 'none';
+  }
+}
+
+function updateBsdHint() {
+  var price = parseFloat(document.getElementById('purchasePrice').value);
+  var val   = parseFloat(document.getElementById('purchaseValuation').value) || 0;
+  var pd    = document.getElementById('purchaseDate').value;
+  if (!price || !pd) return;
+  document.getElementById('bsdHint').innerHTML = '<span class="badge badge-info">Estimated BSD: ' + fmt(getBsdRate(Math.max(price, val), pd)) + '</span>';
+}
+
+function togglePriceBasis(which) {
+  var basis    = document.getElementById(which + 'Basis').value;
+  var isPsf    = basis === 'psf';
+  document.getElementById(which + 'SqftField').style.display = isPsf ? 'flex' : 'none';
+  document.getElementById(which + 'PsfField').style.display  = isPsf ? 'flex' : 'none';
+  document.getElementById(which + 'LumpField').style.display = isPsf ? 'none' : 'flex';
+  var priceFieldId = which === 'purchase' ? 'purchasePrice' : 'salePrice';
+  if (isPsf) {
+    /* Entering PSF mode: clear the lump field so it doesn't silently carry over a stale manual value */
+    document.getElementById(priceFieldId).value = '';
+    updatePriceFromBasis(which);
+  } else {
+    /* Returning to lump-sum mode: clear the PSF inputs so re-toggling back to PSF doesn't silently reuse old sqft/psf */
+    document.getElementById(which + 'Sqft').value = '';
+    document.getElementById(which + 'PricePsf').value = '';
+    if (which === 'purchase') { updateBsdHint(); recalcLoan(); }
+  }
+}
+
+function updatePriceFromBasis(which) {
+  var sqft = parseFloat(document.getElementById(which + 'Sqft').value)    || 0;
+  var psf  = parseFloat(document.getElementById(which + 'PricePsf').value) || 0;
+  var priceFieldId = which === 'purchase' ? 'purchasePrice' : 'salePrice';
+  /* Clear (not leave stale) whenever either input is incomplete, so the hidden lump-sum value
+     used by calculate() never silently disagrees with what's shown in the sqft/psf fields */
+  document.getElementById(priceFieldId).value = (sqft > 0 && psf > 0) ? Math.round(sqft * psf) : '';
+  if (which === 'purchase') { updateBsdHint(); recalcLoan(); }
+}
+
+function toggleRentalSection() {
+  var isRent = document.getElementById('usagePurpose').value === 'rent';
+  document.getElementById('rentalSection').style.display = isRent ? 'block' : 'none';
+  document.getElementById('propTaxHint').textContent = isRent
+    ? 'Use the non-owner-occupied IRAS property tax rate (higher, progressive on Annual Value) — not the owner-occupier rate.'
+    : 'Use the owner-occupier IRAS property tax rate (lower, progressive on Annual Value) for own-stay properties.';
+}
+
+function updateLtvFromSlider() {
+  document.getElementById('ltvPct').value = document.getElementById('ltvSlider').value;
+  recalcLoan();
+}
+function updateLtvFromInput() {
+  var v = Math.min(ltvCap(), Math.max(0, parseFloat(document.getElementById('ltvPct').value) || 0));
+  document.getElementById('ltvPct').value  = v;
+  document.getElementById('ltvSlider').value = v;
+  recalcLoan();
+}
+function recalcLoan() {
+  var pp  = parseFloat(document.getElementById('purchasePrice').value) || 0;
+  var ltvRaw = parseFloat(document.getElementById('ltvPct').value);
+  var ltv = isNaN(ltvRaw) ? 75 : ltvRaw;
+  if (pp > 0) document.getElementById('loanAmt').value = Math.round(pp * ltv / 100);
+}
+
+/* MAS caps LTV by the borrower's number of outstanding housing loans, approximated here by the
+   "which property" selector: 75% (1st), 45% (2nd), 35% (3rd+). Tenure > 30yr or age > 65 at maturity
+   lowers these to 55/25/15 — noted in the hint but not modelled (age isn't collected). Entities
+   don't get the individual limits, so leave uncapped for them. */
+function ltvCap() {
+  if (document.getElementById('buyerType').value === 'EN') return 75;
+  var pc = parseInt(document.getElementById('propCount').value, 10);
+  return pc >= 3 ? 35 : pc === 2 ? 45 : 75;
+}
+function updateLtvCap() {
+  var cap    = ltvCap();
+  var slider = document.getElementById('ltvSlider');
+  var input  = document.getElementById('ltvPct');
+  slider.max = cap; input.max = cap;
+  if ((parseFloat(input.value) || 0) > cap) { input.value = cap; slider.value = cap; }
+  var which = cap === 75 ? 'a 1st' : cap === 45 ? 'a 2nd' : 'a 3rd+';
+  document.getElementById('ltvHint').textContent =
+    'Max ' + cap + '% (MAS limit for ' + which + ' housing loan; lower if tenure > 30 yrs or age > 65 at maturity)';
+  recalcLoan();
+}
+
+function updateRentalCalc() {
+  var monthly = parseFloat(document.getElementById('monthlyRent').value) || 0;
+  var occ     = Math.min(100, parseFloat(document.getElementById('occupancy').value) || 90);
+  var full    = monthly * 12;
+  var eff     = full * (occ / 100);
+  var pp      = parseFloat(document.getElementById('purchasePrice').value) || 0;
+  var y       = pp > 0 ? (full / pp * 100).toFixed(2) : '—';
+  var el      = document.getElementById('rentalCalcHint');
+  el.innerHTML = monthly > 0
+    ? '<span class="badge badge-info">Gross yield: ' + y + '% p.a.</span> <span class="badge badge-info">Effective annual rent (@' + occ + '% occ): ' + fmt(eff) + '</span>'
+    : '';
+}
+
+function toggleBreakdown() {
+  var body    = document.getElementById('breakdownBody');
+  var chev    = document.getElementById('breakdownChevron');
+  var opening = body.style.display === 'none';
+  body.style.display   = opening ? 'block' : 'none';
+  chev.style.transform = opening ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+/* ─────────────────────────────────────────────
+   Core P&L math — pure function of an inputs object.
+   Used both for the base-case render in calculate() and for the scenario-analysis
+   panel, so the two can never drift out of sync with each other.
+───────────────────────────────────────────── */
+function computePnl(inputs) {
+  var pp = inputs.pp, sp = inputs.sp, ltvPct = inputs.ltvPct, tenure = inputs.tenure;
+  var fr = inputs.fr, fp = inputs.fp, flr = inputs.flr, legalBuy = inputs.legalBuy;
+  var agentCommPct = inputs.agentCommPct, legalSell = inputs.legalSell, agentBuyPct = inputs.agentBuyPct;
+  var propTax = inputs.propTax, maint = inputs.maint, isRental = inputs.isRental;
+  var monthlyRent = inputs.monthlyRent, occupancy = inputs.occupancy, rentalExp = inputs.rentalExp;
+  var pd = inputs.pd, sd = inputs.sd, bt = inputs.bt, pc = inputs.pc, remission = inputs.remission;
+  var fta = inputs.fta, purchaseVal = inputs.purchaseVal || 0, saleVal = inputs.saleVal || 0;
+
+  /* Loan is always derived from pp*ltvPct here (not read from a DOM field) so a scenario
+     override of ltvPct recomputes everything downstream consistently */
+  var loan = Math.round(pp * ltvPct / 100);
+
+  var holdMonths = getHoldMonths(pd, sd);
+  var holdYears  = holdMonths / 12;
+
+  var rentalGrossPa = isRental ? monthlyRent * 12 * (occupancy / 100) : 0;
+  var rentalExpPa   = isRental ? rentalExp : 0;
+  var rentalNetPa   = rentalGrossPa - rentalExpPa;
+
+  /* Duties are charged on the higher of transaction price or market valuation (IRAS). */
+  var bsdBase       = Math.max(pp, purchaseVal);
+  var ssdBase       = Math.max(sp, saleVal);
+  var bsd           = getBsdRate(bsdBase, pd);
+  var absdRate      = getAbsdRate(bt, pc, pd, remission, fta);
+  var absd          = bsdBase * absdRate / 100;
+  var agentBuyCost  = pp * agentBuyPct / 100;
+  var ssdInfo       = getSsdInfo(pd, sd);
+  var ssd           = ssdBase * ssdInfo.rate / 100;
+  var agentSellCost = sp * agentCommPct / 100;
+
+  var schedule        = buildAmort(loan, fr, tenure, fp, flr);
+  var holdMths        = Math.min(holdMonths, schedule.length);
+  var totalInterest    = holdMths > 0 ? schedule[holdMths-1].cumInt  : 0;
+  var outstandingLoan  = holdMths > 0 ? schedule[holdMths-1].balance : loan;
+
+  var totalPropTax     = propTax * holdYears;
+  var totalMaint       = maint   * holdYears;
+  var totalRentalGross = rentalGrossPa * holdYears;
+  var totalRentalExp   = rentalExpPa   * holdYears;
+  var totalRentalNet   = rentalNetPa   * holdYears;
+
+  var totalEntryCost = pp + bsd + absd + agentBuyCost + legalBuy;
+  var exitProceeds   = sp - agentSellCost - legalSell - ssd;
+  /* Financing cost = interest only. Principal repayment is a return of capital (recovered via a
+     smaller loan payoff at sale), so it must NOT be added to profit — the earlier version double-
+     counted it via "- outstandingLoan + loan", overstating Net P&L by the principal paid down. */
+  var netPnl = exitProceeds - totalEntryCost - totalInterest
+             - totalPropTax - totalMaint + totalRentalNet;
+
+  var equity      = pp - loan;
+  var totalCashIn = equity + bsd + absd + agentBuyCost + legalBuy;
+  var irr         = holdYears > 0
+    ? (Math.pow((totalCashIn + netPnl) / totalCashIn, 1 / holdYears) - 1) * 100
+    : 0;
+  /* Solve netPnl=0 for sale price: agent commission and SSD both scale with sp, legalSell is fixed. */
+  var breakEven = (totalEntryCost + totalInterest + totalPropTax + totalMaint
+                  - totalRentalNet + legalSell)
+                / (1 - (agentCommPct + ssdInfo.rate) / 100);
+
+  /* Rental yields use full contractual annual rent (100% occupancy) — the market convention. The
+     occupancy-adjusted figure feeds the P&L cash flow above, not the headline yield. */
+  var fullRentPa = isRental ? monthlyRent * 12 : 0;
+  var grossYield = pp > 0 && isRental ? fullRentPa / pp * 100 : 0;
+  var netYield   = pp > 0 && isRental ? (fullRentPa - rentalExp - propTax - maint) / pp * 100 : 0;
+
+  return {
+    loan:loan, holdMonths:holdMonths, holdYears:holdYears,
+    bsd:bsd, absdRate:absdRate, absd:absd, agentBuyCost:agentBuyCost,
+    ssdInfo:ssdInfo, ssd:ssd, agentSellCost:agentSellCost,
+    totalInterest:totalInterest, outstandingLoan:outstandingLoan,
+    totalPropTax:totalPropTax, totalMaint:totalMaint,
+    totalRentalGross:totalRentalGross, totalRentalExp:totalRentalExp, totalRentalNet:totalRentalNet,
+    totalEntryCost:totalEntryCost, exitProceeds:exitProceeds, netPnl:netPnl,
+    equity:equity, totalCashIn:totalCashIn, irr:irr, breakEven:breakEven,
+    grossYield:grossYield, netYield:netYield
+  };
+}
+
+/* ─────────────────────────────────────────────
+   Main calculation
+───────────────────────────────────────────── */
+var lastInputs = null;
+
+function calculate() {
+  /* NaN-safe parse-with-default: unlike `parseFloat(x) || d`, this does not treat a genuine 0 as missing */
+  var num = function(id, def) {
+    var v = parseFloat(document.getElementById(id).value);
+    return Math.max(0, isNaN(v) ? def : v);
+  };
+  var bt            = document.getElementById('buyerType').value;
+  var pc            = document.getElementById('propCount').value;
+  var pd            = document.getElementById('purchaseDate').value;
+  var sd            = document.getElementById('saleDate').value;
+  var pp            = num('purchasePrice', 0);
+  var ltvPct        = num('ltvPct', 75);
+  var tenure        = num('loanTenure', 25);
+  var fr            = num('fixedRate', 0);
+  var fp            = num('fixedPeriod', 0);
+  var flr           = num('floatRate', fr);
+  var legalBuy      = num('legalBuy', 0);
+  var sp            = num('salePrice', 0);
+  var agentCommPct  = num('agentComm', 0);
+  var legalSell     = num('legalSell', 0);
+  var agentBuyPct   = num('agentBuy', 0);
+  var propTax       = num('propTax', 0);
+  var maint         = num('maintenance', 0);
+  var isRental      = document.getElementById('usagePurpose').value === 'rent';
+  var monthlyRent   = num('monthlyRent', 0);
+  var occupancy     = Math.min(100, num('occupancy', 90));
+  var rentalExp     = num('rentalExpenses', 0);
+  /* Recompute eligibility inline rather than trusting remissionRow's painted style — that style
+     is only ever set inside updateAbsdHint(), so relying on it here would be stale if this ever
+     runs without that handler having fired first for the current buyerType/propCount.
+     Must match getAbsdRate()'s actual remission condition (SC/PR only) or the "remitted" label
+     can show for a buyer type whose rate was never actually reduced (e.g. Foreigners). */
+  var fta         = document.getElementById('ftaNational').checked && bt === 'FG';
+  var effBt       = fta ? 'SC' : bt;
+  var purchaseVal = num('purchaseValuation', 0);
+  var saleVal     = num('saleValuation', 0);
+  var remEligible = (effBt === 'SC' || effBt === 'PR') && pc === '2';
+  var remission   = remEligible && document.getElementById('absdRemission').checked;
+
+  if (!pd || !sd || !pp || !sp) {
+    alert('Please fill in purchase date, sale date, purchase price and sale price.');
+    return;
+  }
+  if (new Date(sd) <= new Date(pd)) {
+    alert('Sale date must be after purchase date.');
+    return;
+  }
+
+  var inputs = {
+    pp:pp, sp:sp, ltvPct:ltvPct, tenure:tenure, fr:fr, fp:fp, flr:flr, legalBuy:legalBuy,
+    agentCommPct:agentCommPct, legalSell:legalSell, agentBuyPct:agentBuyPct, propTax:propTax, maint:maint,
+    isRental:isRental, monthlyRent:monthlyRent, occupancy:occupancy, rentalExp:rentalExp,
+    pd:pd, sd:sd, bt:bt, pc:pc, remission:remission, fta:fta, purchaseVal:purchaseVal, saleVal:saleVal
+  };
+  lastInputs = inputs;
+
+  var out          = computePnl(inputs);
+  var holdMonths   = out.holdMonths, holdYears = out.holdYears;
+  var bsd          = out.bsd, absdRate = out.absdRate, absd = out.absd, agentBuyCost = out.agentBuyCost;
+  var ssdInfo      = out.ssdInfo, ssd = out.ssd, agentSellCost = out.agentSellCost;
+  var totalInterest = out.totalInterest, outstandingLoan = out.outstandingLoan, loan = out.loan, equity = out.equity;
+  var totalPropTax = out.totalPropTax, totalMaint = out.totalMaint;
+  var totalRentalGross = out.totalRentalGross, totalRentalExp = out.totalRentalExp;
+  var totalEntryCost = out.totalEntryCost, netPnl = out.netPnl;
+  var totalCashIn  = out.totalCashIn, irr = out.irr, breakEven = out.breakEven;
+  var grossYield   = out.grossYield, netYield = out.netYield;
+
+  document.getElementById('tenureWarning').style.display = 'none';
+  document.getElementById('tenureWarning').innerHTML = '';
+  if (holdYears > tenure) {
+    document.getElementById('tenureWarning').style.display = 'block';
+    document.getElementById('tenureWarning').innerHTML =
+      'ⓘ Note: your holding period (' + holdYears.toFixed(1) + ' yrs) is longer than your loan tenure (' + tenure + ' yrs). This is not a problem in real life — your mortgage will simply have been fully repaid before you sell. It only matters for this calculator\'s math: it assumes the loan is fully repaid by then, so loan balance and mortgage interest after that point are counted as zero.';
+  }
+
+  /* ── Metric cards ── */
+  var metrics = ''
+    + '<div class="metric"><div class="metric-label">Net P&L</div><div class="metric-val ' + (netPnl>=0?'pos':'neg') + '">' + fmtSgn(netPnl) + '</div></div>'
+    + '<div class="metric"><div class="metric-label"><abbr class="term" title="Simplified CAGR on equity: treats the entire holding period as one lump-sum cash flow rather than discounting actual monthly mortgage payments — not a true XIRR.">Annualised return</abbr></div><div class="metric-val ' + (irr>=0?'pos':'neg') + '">' + irr.toFixed(2) + '%</div></div>'
+    + '<div class="metric"><div class="metric-label">Holding period</div><div class="metric-val">' + holdMonths + ' mo</div></div>'
+    + '<div class="metric"><div class="metric-label">Break-even sale price</div><div class="metric-val">' + fmt(breakEven) + '</div></div>'
+    + '<div class="metric"><div class="metric-label">Total interest paid</div><div class="metric-val neg">-' + fmt(totalInterest) + '</div></div>'
+    + '<div class="metric"><div class="metric-label">Loan balance still owed at sale</div><div class="metric-val">' + fmt(outstandingLoan) + '</div></div>';
+  if (isRental) {
+    metrics += '<div class="metric"><div class="metric-label"><abbr class="term" title="Full contractual annual rent at 100% occupancy, divided by purchase price, before expenses, tax, maintenance, or mortgage cost.">Gross rental yield</abbr></div><div class="metric-val pos">' + grossYield.toFixed(2) + '%</div></div>'
+             + '<div class="metric"><div class="metric-label"><abbr class="term" title="Full contractual annual rent at 100% occupancy, minus rental expenses, property tax, and maintenance, divided by purchase price. Mortgage interest is NOT subtracted — it is shown separately as Total interest paid.">Net rental yield</abbr></div><div class="metric-val ' + (netYield>=0?'pos':'neg') + '">' + netYield.toFixed(2) + '%</div></div>';
+  }
+  document.getElementById('metricGrid').innerHTML = metrics;
+
+  /* ── Break-even bar ── */
+  var beRatio  = sp / breakEven;
+  var barColor = sp >= breakEven ? '#1D9E75' : '#D85A30';
+  document.getElementById('breakeven').innerHTML =
+    '<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:6px">Sale price vs break-even: <strong>' + fmt(sp) + '</strong> vs <strong>' + fmt(breakEven) + '</strong></div>'
+    + '<div class="breakeven-bar">'
+    +   '<div class="breakeven-fill" style="width:' + Math.min(beRatio*67,100) + '%;background:' + barColor + '"></div>'
+    +   '<span class="breakeven-label" style="color:' + barColor + '">' + (sp>=breakEven ? 'Above break-even ✓' : 'Below break-even') + '</span>'
+    + '</div>';
+
+  /* ── Breakdown table ── */
+  var principalPaid = Math.max(0, loan - outstandingLoan);
+  var bdHtml = '<thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody>'
+    + '<tr><td colspan="2" style="font-weight:500;font-size:12px;color:var(--color-text-secondary);padding-top:10px">UPFRONT (CASH)</td></tr>'
+    + '<tr><td>Down payment (equity)</td><td>-' + fmt(equity) + '</td></tr>'
+    + '<tr><td>BSD</td><td>-' + fmt(bsd) + '</td></tr>'
+    + '<tr><td>ABSD (' + absdRate + '%' + (remission ? ', remitted' : '') + ')</td><td>' + (absd>0 ? '-'+fmt(absd) : '—') + '</td></tr>'
+    + '<tr><td>Buy-side agent commission (' + agentBuyPct + '%)</td><td>' + (agentBuyCost>0 ? '-'+fmt(agentBuyCost) : '—') + '</td></tr>'
+    + '<tr><td>Buy-side legal fees</td><td>' + (legalBuy>0 ? '-'+fmt(legalBuy) : '—') + '</td></tr>'
+    + '<tr class="total"><td>Total upfront cash</td><td>-' + fmt(totalCashIn) + '</td></tr>'
+    + '<tr><td colspan="2" style="font-weight:500;font-size:12px;color:var(--color-text-secondary);padding-top:10px">HOLDING COSTS</td></tr>'
+    + '<tr><td>Mortgage interest (' + holdMonths + ' months)</td><td>-' + fmt(totalInterest) + '</td></tr>'
+    + '<tr><td>Mortgage principal repaid</td><td>' + (principalPaid>0 ? '-'+fmt(principalPaid) : '—') + '</td></tr>'
+    + '<tr><td>Property tax</td><td>' + (totalPropTax>0 ? '-'+fmt(totalPropTax) : '—') + '</td></tr>'
+    + '<tr><td>Maintenance / S&CC</td><td>' + (totalMaint>0 ? '-'+fmt(totalMaint) : '—') + '</td></tr>'
+    + (isRental
+        ? '<tr><td>Rental income (gross)</td><td>+' + fmt(totalRentalGross) + '</td></tr>'
+        + '<tr><td>Rental expenses</td><td>' + (totalRentalExp>0 ? '-'+fmt(totalRentalExp) : '—') + '</td></tr>'
+        : '')
+    + '<tr><td colspan="2" style="font-weight:500;font-size:12px;color:var(--color-text-secondary);padding-top:10px">EXIT PROCEEDS</td></tr>'
+    + '<tr><td>Sale price</td><td>+' + fmt(sp) + '</td></tr>'
+    + '<tr><td>SSD (' + ssdInfo.rate + '%)</td><td>' + (ssd>0 ? '-'+fmt(ssd) : '—') + '</td></tr>'
+    + '<tr><td>Sell-side agent commission (' + agentCommPct + '%)</td><td>' + (agentSellCost>0 ? '-'+fmt(agentSellCost) : '—') + '</td></tr>'
+    + '<tr><td>Sell-side legal fees</td><td>' + (legalSell>0 ? '-'+fmt(legalSell) : '—') + '</td></tr>'
+    + '<tr><td>Loan balance repaid at sale</td><td>' + (outstandingLoan>0 ? '-'+fmt(outstandingLoan) : '—') + '</td></tr>'
+    + '<tr class="grand"><td>Net P&L</td><td style="' + (netPnl>=0?'color:#0F6E56':'color:#A32D2D') + '">' + fmtSgn(netPnl) + '</td></tr>'
+    + '</tbody>';
+  document.getElementById('breakdownTable').innerHTML = bdHtml;
+
+  buildBenchmark(irr, netPnl, totalCashIn, holdYears, null);
+  /* Guard against a slow, stale fetch from an earlier click overwriting a newer calculation's chart */
+  var calcToken = ++latestCalcToken;
+  fetchLiveBenchmarks(holdYears).then(function(live) {
+    if (calcToken !== latestCalcToken) return;
+    if (live) buildBenchmark(irr, netPnl, totalCashIn, holdYears, live);
+  });
+
+  lastReport = {
+    pd:pd, sd:sd, holdMonths:holdMonths, pp:pp, sp:sp, bsd:bsd, absd:absd, absdRate:absdRate,
+    remission:remission, agentBuyCost:agentBuyCost, legalBuy:legalBuy, totalEntryCost:totalEntryCost,
+    totalInterest:totalInterest, totalPropTax:totalPropTax, totalMaint:totalMaint, isRental:isRental,
+    totalRentalGross:totalRentalGross, totalRentalExp:totalRentalExp, ssdInfo:ssdInfo, ssd:ssd,
+    agentSellCost:agentSellCost, agentCommPct:agentCommPct, legalSell:legalSell, outstandingLoan:outstandingLoan,
+    equity:equity, loan:loan, totalCashIn:totalCashIn,
+    netPnl:netPnl, irr:irr, breakEven:breakEven, grossYield:grossYield, netYield:netYield
+  };
+
+  initScenarioPanel(out);
+
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ─────────────────────────────────────────────
+   Scenario analysis
+───────────────────────────────────────────── */
+var lastFormSnapshot = null;
+
+/* Captures every form field that feeds calculate(), so updateScenario() can detect
+   whether the form above has been edited since the scenario panel's base case was set */
+function currentFormSnapshot() {
+  var ids = ['buyerType','propCount','purchaseDate','saleDate','purchasePrice','ltvPct','loanTenure',
+    'fixedRate','fixedPeriod','floatRate','legalBuy','salePrice','agentComm','legalSell','agentBuy',
+    'propTax','maintenance','usagePurpose','monthlyRent','occupancy','rentalExpenses'];
+  var parts = ids.map(function(id) { return document.getElementById(id).value; });
+  parts.push(document.getElementById('absdRemission').checked);
+  return parts.join('|');
+}
+
+function initScenarioPanel(baseOut) {
+  document.getElementById('scenLtv').value        = lastInputs.ltvPct;
+  document.getElementById('scenLtv').max           = ltvCap();
+  document.getElementById('scenRateDelta').value   = 0;
+  document.getElementById('scenPsfDelta').value    = 0;
+  document.getElementById('scenBaseNetPnl').textContent = fmtSgn(baseOut.netPnl);
+  document.getElementById('scenBaseIrr').textContent    = baseOut.irr.toFixed(2) + '%';
+  lastFormSnapshot = currentFormSnapshot();
+  document.getElementById('scenStaleWarning').style.display = 'none';
+  updateScenario();
+}
+
+function resetScenario() {
+  if (!lastInputs) return;
+  document.getElementById('scenLtv').value      = lastInputs.ltvPct;
+  document.getElementById('scenRateDelta').value = 0;
+  document.getElementById('scenPsfDelta').value  = 0;
+  updateScenario();
+}
+
+function updateScenario() {
+  if (!lastInputs) return;
+  document.getElementById('scenStaleWarning').style.display =
+    (lastFormSnapshot !== null && currentFormSnapshot() !== lastFormSnapshot) ? 'block' : 'none';
+  var scenLtv       = Math.max(0, Math.min(ltvCap(), parseFloat(document.getElementById('scenLtv').value) || 0));
+  var rateDelta      = parseFloat(document.getElementById('scenRateDelta').value) || 0;
+  var psfDelta       = parseFloat(document.getElementById('scenPsfDelta').value) || 0;
+
+  document.getElementById('scenLtvLabel').textContent       = scenLtv.toFixed(0) + '%';
+  document.getElementById('scenRateDeltaLabel').textContent = (rateDelta >= 0 ? '+' : '') + rateDelta.toFixed(2) + ' pp';
+  document.getElementById('scenPsfDeltaLabel').textContent  = (psfDelta >= 0 ? '+' : '') + psfDelta.toFixed(0) + '%';
+  /* aria-valuetext so screen readers announce the formatted value (e.g. "+0.25 percentage points"),
+     not just the bare numeric slider value */
+  document.getElementById('scenLtv').setAttribute('aria-valuetext', scenLtv.toFixed(0) + ' percent loan-to-value');
+  document.getElementById('scenRateDelta').setAttribute('aria-valuetext', (rateDelta >= 0 ? '+' : '') + rateDelta.toFixed(2) + ' percentage points');
+  document.getElementById('scenPsfDelta').setAttribute('aria-valuetext', (psfDelta >= 0 ? '+' : '') + psfDelta.toFixed(0) + ' percent change in sale price');
+
+  var scenInputs = Object.assign({}, lastInputs, {
+    ltvPct: scenLtv,
+    fr:  Math.max(0, lastInputs.fr  + rateDelta),
+    flr: Math.max(0, lastInputs.flr + rateDelta),
+    sp:  lastInputs.sp * (1 + psfDelta / 100)
+  });
+
+  var base = computePnl(lastInputs);
+  var scen = computePnl(scenInputs);
+  var pnlDelta = scen.netPnl - base.netPnl;
+  var irrDelta = scen.irr - base.irr;
+
+  document.getElementById('scenBaseNetPnl').textContent = fmtSgn(base.netPnl);
+  document.getElementById('scenBaseIrr').textContent    = base.irr.toFixed(2) + '%';
+  document.getElementById('scenRevisedNetPnl').textContent = fmtSgn(scen.netPnl);
+  document.getElementById('scenRevisedNetPnl').className    = 'metric-val ' + (scen.netPnl >= 0 ? 'pos' : 'neg');
+  document.getElementById('scenRevisedIrr').textContent     = scen.irr.toFixed(2) + '%';
+  document.getElementById('scenRevisedIrr').className        = 'metric-val ' + (scen.irr >= 0 ? 'pos' : 'neg');
+  document.getElementById('scenNetPnlDelta').textContent = fmtSgn(pnlDelta) + ' vs base';
+  document.getElementById('scenNetPnlDelta').style.color  = pnlDelta >= 0 ? 'var(--color-text-success)' : 'var(--color-text-danger)';
+  document.getElementById('scenIrrDelta').textContent = (irrDelta >= 0 ? '+' : '') + irrDelta.toFixed(2) + ' pp vs base';
+  document.getElementById('scenIrrDelta').style.color  = irrDelta >= 0 ? 'var(--color-text-success)' : 'var(--color-text-danger)';
+}
+
+/* ─────────────────────────────────────────────
+   Email report
+───────────────────────────────────────────── */
+var lastReport = null;
+var lastBenchmarkText = '';
+
+function buildReportText() {
+  var r = lastReport;
+  var lines = [];
+  lines.push('SINGAPORE PROPERTY P&L REPORT (estimate only, not financial advice)');
+  lines.push('Purchase: ' + r.pd + '   Sale: ' + r.sd + '   Holding period: ' + r.holdMonths + ' months');
+  lines.push('');
+  lines.push('SUMMARY');
+  lines.push('Net P&L: ' + fmtSgn(r.netPnl));
+  lines.push('Annualised return (simplified CAGR, not true XIRR): ' + r.irr.toFixed(2) + '%');
+  lines.push('Break-even sale price: ' + fmt(r.breakEven));
+  lines.push('Total interest paid: -' + fmt(r.totalInterest));
+  lines.push('Loan balance still owed at sale: ' + fmt(r.outstandingLoan));
+  if (r.isRental) {
+    lines.push('Gross rental yield: ' + r.grossYield.toFixed(2) + '%');
+    lines.push('Net rental yield: ' + r.netYield.toFixed(2) + '%');
+  }
+  lines.push('');
+  lines.push('UPFRONT (CASH)');
+  lines.push('Down payment (equity): -' + fmt(r.equity));
+  lines.push('BSD: -' + fmt(r.bsd));
+  lines.push('ABSD (' + r.absdRate + '%' + (r.remission ? ', remitted' : '') + '): ' + (r.absd > 0 ? '-' + fmt(r.absd) : '—'));
+  lines.push('Buy-side agent commission: ' + (r.agentBuyCost > 0 ? '-' + fmt(r.agentBuyCost) : '—'));
+  lines.push('Buy-side legal fees: ' + (r.legalBuy > 0 ? '-' + fmt(r.legalBuy) : '—'));
+  lines.push('Total upfront cash: -' + fmt(r.totalCashIn));
+  lines.push('');
+  lines.push('HOLDING COSTS');
+  lines.push('Mortgage interest: -' + fmt(r.totalInterest));
+  lines.push('Mortgage principal repaid: ' + ((r.loan - r.outstandingLoan) > 0 ? '-' + fmt(r.loan - r.outstandingLoan) : '—'));
+  lines.push('Property tax: ' + (r.totalPropTax > 0 ? '-' + fmt(r.totalPropTax) : '—'));
+  lines.push('Maintenance / S&CC: ' + (r.totalMaint > 0 ? '-' + fmt(r.totalMaint) : '—'));
+  if (r.isRental) {
+    lines.push('Rental income (gross): +' + fmt(r.totalRentalGross));
+    lines.push('Rental expenses: ' + (r.totalRentalExp > 0 ? '-' + fmt(r.totalRentalExp) : '—'));
+  }
+  lines.push('');
+  lines.push('EXIT PROCEEDS');
+  lines.push('Sale price: +' + fmt(r.sp));
+  lines.push('SSD (' + r.ssdInfo.rate + '%): ' + (r.ssd > 0 ? '-' + fmt(r.ssd) : '—'));
+  lines.push('Sell-side agent commission: ' + (r.agentSellCost > 0 ? '-' + fmt(r.agentSellCost) : '—'));
+  lines.push('Sell-side legal fees: ' + (r.legalSell > 0 ? '-' + fmt(r.legalSell) : '—'));
+  lines.push('Loan balance repaid at sale: ' + (r.outstandingLoan > 0 ? '-' + fmt(r.outstandingLoan) : '—'));
+  lines.push('');
+  lines.push('Net P&L: ' + fmtSgn(r.netPnl));
+  if (lastBenchmarkText) {
+    lines.push('');
+    lines.push('BENCHMARK COMPARISON (same equity, same holding period)');
+    lines.push(lastBenchmarkText);
+  }
+  lines.push('');
+  lines.push('Generated by the Singapore Property P&L Calculator. Stamp duty rates are hardcoded as of Apr 2023 (ABSD/BSD) / Jul 2025 (SSD) — verify current rates at iras.gov.sg before transacting.');
+  return lines.join('\n');
+}
+
+function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+function showReportStatus(msg, isError) {
+  var el = document.getElementById('emailStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.color = isError ? 'var(--color-text-danger)' : 'var(--color-text-success)';
+}
+
+/* Reliable, backend-free "save" path: copy the full report to the clipboard. This is the primary
+   way to get the report out — unlike mailto:, it works for every visitor regardless of whether they
+   have a mail client configured (important for a publicly self-hosted deploy). */
+function copyReport() {
+  if (!lastReport) { showReportStatus('Calculate a P&L first.', true); return; }
+  var text = buildReportText();
+  var ta = document.getElementById('reportFallback');
+  var ok = function() { if (ta) ta.style.display = 'none'; showReportStatus('Report copied. Paste it into any email, note, or message.', false); };
+  var manual = function() {
+    /* navigator.clipboard blocked/unavailable — reveal the report in a selectable box and try the
+       legacy execCommand path; if even that is blocked, the user can select-all and copy by hand. */
+    if (ta) { ta.value = text; ta.style.display = 'block'; ta.focus(); ta.select(); }
+    var done = false;
+    try { done = document.execCommand('copy'); } catch (e) { done = false; }
+    if (done) ok();
+    else showReportStatus('Auto-copy is blocked here. The report is in the box below; select all and copy it.', true);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(ok).catch(manual);
+  } else {
+    manual();
+  }
+}
+
+function emailReport() {
+  if (!lastReport) { showReportStatus('Calculate a P&L first, then send.', true); return; }
+  var to = document.getElementById('emailTo').value.trim();
+  if (!isValidEmail(to)) {
+    showReportStatus('Enter a valid email address first, or use "Copy report".', true);
+    document.getElementById('emailTo').focus();
+    return;
+  }
+  var subject = 'Singapore Property P&L — net ' + (lastReport.netPnl >= 0 ? 'profit ' : 'loss ') + fmt(lastReport.netPnl);
+  var body = buildReportText();
+  /* mailto bodies are length-limited across mail clients (~1800 chars is broadly safe); the full
+     text is always available via Copy report, so truncate the emailed copy with a pointer. */
+  var maxLen = 1800;
+  if (body.length > maxLen) body = body.slice(0, maxLen) + '\n\n[Truncated for email — use "Copy report" for the full text.]';
+  /* A validated address is mailto-safe as-is; only the subject/body need encoding. Open through a
+     transient anchor instead of navigating the page (window.location = "mailto:" can leave some
+     browsers on a blank/aborted navigation). If no mail handler exists nothing opens — which is
+     exactly why Copy report is offered alongside. */
+  var a = document.createElement('a');
+  a.href = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showReportStatus('Opening your mail app... if nothing happens, use "Copy report" instead.', false);
+}
+
+/* ─────────────────────────────────────────────
+   Benchmark comparison
+───────────────────────────────────────────── */
+function growthAmt(equity, annRet, years) {
+  return equity * Math.pow(1 + annRet / 100, years);
+}
+
+/* Live STI ETF + S&P 500 trailing returns, proxied by our own backend (no user API key needed).
+   The backend computes each CAGR from real price history: STI ETF (ES3) from SGX in SGD, and
+   S&P 500 (SPY) from Longbridge in USD — matching the per-instrument price-return basis the old
+   Twelve Data path used. SGS T-bills has no free CORS-friendly source, so it stays a fixed estimate.
+   Returns {sti:{cagr,years}|null, spy:{cagr,years}|null}, or null if the feed is unreachable. */
+var BENCHMARK_API = 'https://sg-benchmarks.alyoechosys.dev/benchmarks';
+function fetchLiveBenchmarks(holdYears) {
+  var statusEl = document.getElementById('liveDataStatus');
+  statusEl.innerHTML = '<span class="badge badge-info">Fetching live STI ETF, S&amp;P 500 &amp; T-bill…</span>';
+  var years = Math.max(1, Math.min(10, Math.round(holdYears || 5)));
+  return fetch(BENCHMARK_API + '?years=' + years)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var sti = (d && d.sti) || null, spy = (d && d.spy) || null, tbill = (d && d.tbill) || null;
+      if (!sti && !spy && !tbill) throw new Error('no live data');
+      var warn = function(t) { return '<span class="badge" style="background:var(--color-background-warning);color:var(--color-text-warning)">' + t + ': live unavailable, using estimate</span>'; };
+      var parts = [];
+      parts.push(sti ? '<span class="badge badge-info">STI ETF: ' + sti.cagr.toFixed(2) + '% (live, trailing ' + sti.years.toFixed(1) + 'yr)</span>' : warn('STI ETF'));
+      parts.push(spy ? '<span class="badge badge-info">S&amp;P 500: ' + spy.cagr.toFixed(2) + '% (live, trailing ' + spy.years.toFixed(1) + 'yr)</span>' : warn('S&amp;P 500'));
+      parts.push(tbill ? '<span class="badge badge-info">T-bill: ' + tbill.rate.toFixed(2) + '% (live, latest 6-mo)</span>' : warn('T-bill'));
+      statusEl.innerHTML = parts.join(' ');
+      return { sti: sti, spy: spy, tbill: tbill };
+    })
+    .catch(function() {
+      statusEl.innerHTML = '<span class="badge" style="background:var(--color-background-warning);color:var(--color-text-warning)">Live data unavailable — showing fixed long-run estimates.</span>';
+      return null;
+    });
+}
+
+function buildBenchmark(propIrr, netPnl, equity, holdYears, liveOverrides) {
+  var stiLive   = liveOverrides && liveOverrides.sti   != null;
+  var spyLive   = liveOverrides && liveOverrides.spy   != null;
+  var tbillLive = liveOverrides && liveOverrides.tbill != null;
+  var benchmarks = [
+    { name:'STI ETF',       ticker:'ES3',    ann: stiLive   ? liveOverrides.sti.cagr   : 6.5,  color:'#185FA5', note: stiLive   ? '(live, trailing ' + liveOverrides.sti.years.toFixed(1) + 'yr)' : '(fixed estimate)' },
+    { name:'T-bills (SGS)', ticker:'T-bill', ann: tbillLive ? liveOverrides.tbill.rate : 1.5,  color:'#1D9E75', note: tbillLive ? '(live, latest 6-mo cut-off)' : '(fixed estimate)' },
+    { name:'S&P 500 (SPY)', ticker:'SPY',    ann: spyLive   ? liveOverrides.spy.cagr   : 10.0, color:'#7F77DD', note: spyLive   ? '(live, trailing ' + liveOverrides.spy.years.toFixed(1) + 'yr)' : '(fixed estimate)' }
+  ];
+
+  var cards = benchmarks.map(function(b) {
+    var gain = growthAmt(equity, b.ann, holdYears) - equity;
+    return { name:b.name, ticker:b.ticker, ann:b.ann, gain:gain, color:b.color, beats:propIrr>=b.ann, note:b.note };
+  });
+
+  /* Cards HTML */
+  var propColor  = propIrr >= 0 ? '#0F6E56' : '#A32D2D';
+  var cardsHtml  = '';
+  cards.forEach(function(b) {
+    cardsHtml += '<div class="bmark-card">'
+      + '<div class="bmark-name">' + b.name + ' <span style="color:var(--color-text-tertiary)">(' + b.ticker + ')</span></div>'
+      + '<div class="bmark-ret pos">' + b.ann.toFixed(1) + '% p.a. <span style="font-size:10px;font-weight:400;color:var(--color-text-tertiary)">' + b.note + '</span></div>'
+      + '<div class="bmark-total">~' + fmt(b.gain) + ' gain over ' + holdYears.toFixed(1) + ' yrs</div>'
+      + '<span class="bmark-tag ' + (propIrr>=b.ann?'win':'lose') + '">' + (propIrr>=b.ann?'Your property earned more than this':'Your property earned less than this') + '</span>'
+      + '</div>';
+  });
+  document.getElementById('bmarkCards').innerHTML = cardsHtml;
+
+  /* Chart */
+  var labels = ['Your property', 'STI ETF', 'T-bills', 'S&P 500'];
+  var gains  = [netPnl, cards[0].gain, cards[1].gain, cards[2].gain];
+  var colors = [propColor, '#185FA5', '#1D9E75', '#7F77DD'];
+
+  if (benchmarkChartInst) { benchmarkChartInst.destroy(); benchmarkChartInst = null; }
+
+  document.getElementById('benchmarkChart').setAttribute('aria-label',
+    'Bar chart comparing total gain: your property ' + fmtSgn(netPnl) + ', STI ETF ' + fmtSgn(cards[0].gain) +
+    ', T-bills ' + fmtSgn(cards[1].gain) + ', S&P 500 ' + fmtSgn(cards[2].gain) + '.');
+
+  var ctx = document.getElementById('benchmarkChart').getContext('2d');
+  benchmarkChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Total gain (S$)',
+        data:  gains,
+        backgroundColor: colors,
+        borderWidth: 0,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(c) {
+          return 'Gain: ' + (c.raw<0?'-':'') + 'S$' + Math.abs(Math.round(c.raw)).toLocaleString();
+        }}}
+      },
+      scales: {
+        y: {
+          ticks: { callback: function(v) {
+            return Math.abs(v) >= 1e6 ? (v/1e6).toFixed(1)+'M' : (v/1e3).toFixed(0)+'K';
+          }},
+          grid: { color: 'rgba(128,128,128,.1)' }
+        },
+        x: { ticks: { font: { size:12 }, autoSkip: false } }
+      }
+    }
+  });
+
+  buildLayman(propIrr, netPnl, equity, holdYears, cards);
+}
+
+/* ─────────────────────────────────────────────
+   Layman explanation
+───────────────────────────────────────────── */
+function buildLayman(propIrr, netPnl, equity, holdYears, benchmarks) {
+  var beatsAll  = benchmarks.every(function(b){ return propIrr >= b.ann; });
+  var beatsNone = benchmarks.every(function(b){ return propIrr <  b.ann; });
+  var verdictClass = beatsAll ? 'good' : beatsNone ? 'bad' : 'ok';
+  var verdictText  = beatsAll  ? 'Based on these inputs — property outperforms all benchmarks'
+                   : beatsNone ? 'Based on these inputs — alternatives would likely have done better'
+                   :             'Based on these inputs — property beats some benchmarks but not all';
+  var propSign = netPnl >= 0 ? 'profit' : 'loss';
+  var tbill = benchmarks[1], sti = benchmarks[0], spy = benchmarks[2];
+  var comparison = '';
+  if (beatsAll) {
+    comparison = 'Putting the same money into the STI ETF would have grown by about ' + fmt(sti.gain)
+      + ', and the S&P 500 by about ' + fmt(spy.gain)
+      + ' — both less than what this property transaction returned. Even the risk-free T-bill ('
+      + fmt(tbill.gain) + ') falls short.';
+  } else if (beatsNone) {
+    comparison = 'For context, parking the same equity in T-bills (essentially risk-free) would have returned about '
+      + fmt(tbill.gain) + ', the STI ETF about ' + fmt(sti.gain)
+      + ', and the S&P 500 about ' + fmt(spy.gain)
+      + ' — all better outcomes with less complexity and no liquidity lock-up.';
+  } else {
+    var beaten = benchmarks.filter(function(b){ return propIrr >= b.ann; }).map(function(b){ return b.name; }).join(' and ');
+    var lostTo = benchmarks.filter(function(b){ return propIrr <  b.ann; }).map(function(b){ return b.name; }).join(' and ');
+    var diff   = benchmarks.filter(function(b){ return propIrr <  b.ann; })[0].gain - netPnl;
+    comparison = 'This property beats ' + beaten + ' but trails ' + lostTo
+      + '. The ' + lostTo + ' would have generated about ' + fmt(diff) + ' more on the same equity.';
+  }
+
+  lastBenchmarkText = benchmarks.map(function(b){
+    return '  ' + b.name + ': ' + b.ann.toFixed(1) + '% p.a.  (~' + fmt(b.gain) + ' on the same equity)';
+  }).join('\n') + '\n  Verdict: ' + verdictText.replace('Based on these inputs — ', '');
+
+  document.getElementById('laymanBox').innerHTML =
+    '<span class="verdict ' + verdictClass + '">' + verdictText + '</span>'
+    + '<div class="lhead">In plain English</div>'
+    + '<p style="margin-bottom:.75rem">Over ' + holdYears.toFixed(1) + ' years, this property transaction produced a net ' + propSign
+    +   ' of <strong>' + fmt(netPnl) + '</strong>, equivalent to an annualised return of <strong>' + propIrr.toFixed(2) + '%</strong>'
+    +   ' on the equity invested (down payment + upfront costs of ' + fmt(equity) + ').</p>'
+    + '<p style="margin-bottom:.75rem">' + comparison + '</p>'
+    + '<p style="color:var(--color-text-secondary);font-size:13px">⚠ Unlike stocks or T-bills, property ties up capital for years with high front-loaded transaction costs; stamp duties and agent fees alone can run into six figures. Benchmark figures are pulled live where possible: STI ETF and S&P 500 as trailing returns from real price history, and the SGS 6-month T-bill from the latest MAS auction cut-off. If a live feed is unavailable it falls back to long-run estimates (STI ~6.5%, S&P ~10%, T-bill ~1.5%). Rates move; see <a href="https://www.mas.gov.sg/bonds-and-bills/treasury-bills-statistics" target="_blank" rel="noopener">MAS T-bill statistics</a> for the official latest yield.</p>';
+}
+
+/* ─────────────────────────────────────────────
+   Initialise
+───────────────────────────────────────────── */
+var today = new Date().toISOString().split('T')[0];
+document.getElementById('purchaseDate').value = today;
+document.getElementById('saleDate').value = new Date(Date.now() + 5*365.25*24*60*60*1000).toISOString().split('T')[0];
+updateAbsdHint();
+toggleRentalSection();
+
+/* Re-check scenario staleness on any edit to a base-case field, without touching every
+   individual field's existing oninput/onchange handler */
+document.body.addEventListener('input', function() { if (lastInputs) updateScenario(); });
+document.body.addEventListener('change', function() { if (lastInputs) updateScenario(); });
+</script>
+</body>
+</html>
