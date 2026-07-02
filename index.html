@@ -116,7 +116,7 @@
     font-weight: 600;
     color: var(--color-text-secondary);
     letter-spacing: .01em;
-    margin-bottom: 1.15rem;
+    margin: 0 0 1.15rem;            /* reset native <h2> margins so these read as section labels, not headings */
     display: flex;
     align-items: center;
     gap: .55rem;
@@ -169,18 +169,18 @@
   }
   input[type="range"] {
     -webkit-appearance: none; appearance: none;
-    height: 6px; padding: 0; border: none;
+    height: 8px; padding: 0; border: none;
     background: var(--color-background-secondary);
     border-radius: var(--r-pill); cursor: pointer;
   }
   input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%;
     background: var(--accent); border: 3px solid var(--color-background-primary);
     box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .12s ease;
   }
   input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
   input[type="range"]::-moz-range-thumb {
-    width: 20px; height: 20px; border-radius: 50%; background: var(--accent);
+    width: 26px; height: 26px; border-radius: 50%; background: var(--accent);
     border: 3px solid var(--color-background-primary); box-shadow: var(--shadow-sm); cursor: pointer;
   }
   input[type="range"]:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
@@ -574,11 +574,11 @@
 
 <!-- ── Transaction dates ── -->
 <div class="section">
-  <div class="section-title" role="heading" aria-level="2">Transaction dates</div>
+  <h2 class="section-title">Transaction dates</h2>
   <div class="grid2">
     <div class="field">
       <label for="purchaseDate">Purchase date (OTP exercise / S&amp;P date)</label>
-      <input type="date" id="purchaseDate" onchange="updateAbsdHint()">
+      <input type="date" id="purchaseDate" onchange="updateAbsdHint();updateBsdHint()">
       <span class="hint">Determines <abbr class="term" title="Additional Buyer's Stamp Duty">ABSD</abbr> &amp; <abbr class="term" title="Seller's Stamp Duty">SSD</abbr> rate schedule</span>
     </div>
     <div class="field">
@@ -592,7 +592,7 @@
 
 <!-- ── Purchase details ── -->
 <div class="section">
-  <div class="section-title" role="heading" aria-level="2">Purchase details</div>
+  <h2 class="section-title">Purchase details</h2>
   <div class="grid2">
     <div class="field">
       <label for="purchaseBasis">Price basis</label>
@@ -664,7 +664,7 @@
 
 <!-- ── Sale details ── -->
 <div class="section">
-  <div class="section-title" role="heading" aria-level="2">Sale details</div>
+  <h2 class="section-title">Sale details</h2>
   <div class="grid2">
     <div class="field">
       <label for="saleBasis">Price basis</label>
@@ -708,7 +708,7 @@
 
 <!-- ── Property usage & other costs ── -->
 <div class="section">
-  <div class="section-title" role="heading" aria-level="2">Property usage &amp; other costs</div>
+  <h2 class="section-title">Property usage &amp; other costs</h2>
   <div class="grid2">
     <!-- Purpose (live-in vs rent) is chosen in the story above (#usagePurpose) -->
     <div class="field">
@@ -776,7 +776,7 @@
 
   <!-- Summary metrics -->
   <div class="section">
-    <div class="section-title" role="heading" aria-level="2">P&amp;L summary</div>
+    <h2 class="section-title">P&amp;L summary</h2>
     <div id="inputWarn" class="field-error" style="display:none;margin-bottom:.75rem"></div>
     <div class="metric-grid" id="metricGrid"></div>
     <p class="hint" style="margin-bottom:.75rem">ⓘ "Annualised return" is a simplified estimate (CAGR on equity) — it treats the whole holding period as one lump sum rather than your actual monthly mortgage payments, so it is not the same as a bank-quoted IRR/XIRR. It is also a leveraged return (on your equity), so it is not directly comparable to the unleveraged benchmark returns below.</p>
@@ -787,7 +787,7 @@
   <!-- Collapsible breakdown -->
   <div class="section">
     <div class="collapsible-header" onclick="toggleBreakdown()">
-      <div class="section-title" role="heading" aria-level="2">Cost &amp; proceeds breakdown</div>
+      <h2 class="section-title">Cost &amp; proceeds breakdown</h2>
       <i class="ti ti-chevron-down chevron" id="breakdownChevron" aria-hidden="true"></i>
     </div>
     <div id="breakdownBody" style="display:none;margin-top:1rem">
@@ -797,7 +797,7 @@
 
   <!-- Scenario analysis -->
   <div class="section">
-    <div class="section-title" role="heading" aria-level="2">Scenario analysis</div>
+    <h2 class="section-title">Scenario analysis</h2>
     <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem">
       Try "what if" questions — what if interest rates rise, or you sell for less than planned — to see how your profit changes. Each slider works independently of the others.<br>
       These sliders explore changes from your current inputs; the base case updates automatically as you edit the form.
@@ -843,7 +843,7 @@
 
     <!-- Sensitivity: pre-baked downside/upside cases at a glance (base-driven, updates as you edit the deal) -->
     <div class="sensitivity">
-      <div class="section-title" role="heading" aria-level="2" style="font-size:14px;margin-top:1.75rem">Sensitivity — how the deal holds up</div>
+      <h2 class="section-title" style="font-size:14px;margin-top:1.75rem">Sensitivity — how the deal holds up</h2>
       <p style="font-size:13px;color:var(--color-text-secondary);margin:.25rem 0 .75rem">Common shocks applied one at a time to your current inputs, so you can see the downside at a glance without dragging the sliders.</p>
       <table class="sensitivity-table" id="sensitivityTable"></table>
     </div>
@@ -851,7 +851,7 @@
 
   <!-- Benchmark comparison -->
   <div class="section">
-    <div class="section-title" role="heading" aria-level="2">Benchmark comparison</div>
+    <h2 class="section-title">Benchmark comparison</h2>
     <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.75rem">
       If the same equity (down payment + upfront costs) had been invested elsewhere over the same holding period
     </p>
@@ -867,7 +867,7 @@
 
   <!-- Save / email report -->
   <div class="section">
-    <div class="section-title" role="heading" aria-level="2">Save or send this report</div>
+    <h2 class="section-title">Save or send this report</h2>
     <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.9rem">A plain-text copy of the P&amp;L summary, the full cost breakdown, and the benchmark comparison. <strong>Copy it</strong> to paste anywhere, or <strong>open it as a pre-filled email</strong> — nothing is sent from this page or stored anywhere.</p>
     <div class="field" style="margin-bottom:.9rem">
       <label for="emailTo">Email address <span style="color:var(--color-text-tertiary);font-weight:400">(only needed for the email option)</span></label>
@@ -1211,7 +1211,12 @@ function updateLtvCap() {
 
 function updateRentalCalc() {
   var monthly = parseFloat(document.getElementById('monthlyRent').value) || 0;
-  var occRaw  = parseFloat(document.getElementById('occupancy').value);
+  var occEl   = document.getElementById('occupancy');
+  /* Visibly clamp occupancy to 0–100 in the field itself, so it never shows an out-of-range value that
+     the calc would silently cap (and export) at 100. */
+  var occTmp  = parseFloat(occEl.value);
+  if (!isNaN(occTmp)) { if (occTmp > 100) occEl.value = 100; else if (occTmp < 0) occEl.value = 0; }
+  var occRaw  = parseFloat(occEl.value);
   var occ     = Math.min(100, Math.max(0, isNaN(occRaw) ? 90 : occRaw));
   var full    = monthly * 12;
   var eff     = full * (occ / 100);
@@ -1418,7 +1423,6 @@ function calculate(scroll) {
   });
   if (_badField) inputWarnings.push('a number field contains characters that aren’t a valid number — that field is being ignored');
   if (_negField) inputWarnings.push('negative amounts aren’t valid');
-  if (rawNum('occupancy') > 100) inputWarnings.push('occupancy over 100% is treated as 100%');
 
   /* A sale price of 0 is a legitimate scenario (total loss / gift), so require the field to be *provided*
      rather than truthy; the purchase price must still be > 0. An invalid (badInput) field blocks the whole
@@ -2062,12 +2066,19 @@ document.getElementById('saleDate').addEventListener('change', syncHoldYearsFiel
 window.addEventListener('resize', fitStorySelects);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitStorySelects);
 
-/* Prefilled example values: select a field's contents on focus so the first keystroke replaces the
-   example rather than appending to it (clicking "1,800,000" and typing must not give "1,800,000700000").
-   The setTimeout defers past the click's own caret placement so the selection reliably sticks. */
+/* Prefilled example values: clear a still-untouched example on focus so the first keystroke starts a fresh
+   number instead of appending/prepending to the example — clicking "1,800,000" and typing 700000 must give
+   "700,000", not "1,800,000,700,000". This is deliberately NOT select-on-focus: a text selection does not
+   survive the click's mouseup or formatMoney's per-keystroke caret rewrites, which is what kept letting the
+   example and the typed digits concatenate. Once the user has typed their own value the field edits normally;
+   a focus with no typing restores the example on blur so an accidental tab-through loses nothing. */
 ['purchasePrice','salePrice','holdYearsQuick','fixedRate','loanTenure'].forEach(function(id) {
   var e = document.getElementById(id);
-  if (e) e.addEventListener('focus', function() { setTimeout(function() { try { e.select(); } catch (x) {} }, 0); });
+  if (!e) return;
+  var example = e.value, pristine = true;
+  e.addEventListener('focus', function() { if (pristine) e.value = ''; });
+  e.addEventListener('input', function() { pristine = false; });
+  e.addEventListener('blur',  function() { if (pristine && e.value.trim() === '') e.value = example; });
 });
 
 /* Show the worked-example result immediately (the story starts alive, not blank). */

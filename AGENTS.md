@@ -57,8 +57,11 @@ change or move, so treat it as a convenience reference, not a permanent contract
    amortisation loop hard-capped** (an absurd/`1e308` tenure can't hang the page); `num()` clamps to
    [0, 1e12]; **`validity.badInput` and negative amounts BLOCK** the calc (results hidden, `lastReport`
    nulled → no stale export), negatives shown not silently flipped; **S$0 sale is valid**; an **underwater
-   sale** shows the cash top-up (`#underwaterNote`). A11y: `role="heading"` section titles + a narrow
-   `#srSummary` live region (no broad `aria-live`).
+   sale** shows the cash top-up (`#underwaterNote`). **Occupancy visibly clamps to 0–100 in the field**;
+   **prefilled example fields clear their untouched example on focus** (first keystroke never concatenates —
+   no "1,800,000,700,000"); the top **BSD/ABSD hint chips refresh on purchase-date change too** (not just
+   price/valuation). A11y: **native `<h2>` section titles** under the single `<h1>`, **26px slider thumbs /
+   8px tracks** for touch, and a narrow `#srSummary` live region (no broad `aria-live`).
 
 ## Run & verify locally (no build, no test suite)
 - Serve the folder and open `index.html`:

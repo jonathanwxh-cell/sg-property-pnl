@@ -18,8 +18,11 @@ class names** (the JS depends on them). Do **not** regress the Singapore tax/fin
   break-even handles valuation-based SSD & shows "S$0 or below"; IRR floors at **-100%** on wipe-out
 - **Robustness:** `num()` clamps [0,1e12] + tenure ≤35yr + amortisation loop capped (no `1e308` hang);
   invalid (`badInput`) / negative inputs **block** calc+export (negatives shown, not flipped); **S$0 sale valid**;
-  underwater sale shows a cash top-up; a11y = `role="heading"` titles + narrow `#srSummary` live region
-- Full change history: **HANDOFF.md §11–§16** (§4 is the canonical invariants)
+  underwater sale shows a cash top-up; **occupancy visibly clamps to 0–100 in the field**; **prefilled example
+  fields clear on focus** (first keystroke never concatenates); **BSD/ABSD chips refresh on date change too**;
+  a11y = **native `<h2>` titles** under one `<h1>` + **touch-sized sliders (26px thumb / 8px track)** + narrow
+  `#srSummary` live region
+- Full change history: **HANDOFF.md §11–§18** (§4 is the canonical invariants)
 
 Verify with the browser-console reconciliation check in AGENTS.md ("Run & verify locally") **before and
 after** any change. There is no test suite. Benchmarks come from an external endpoint with an automatic

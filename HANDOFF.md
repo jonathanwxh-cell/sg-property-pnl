@@ -14,8 +14,8 @@ STI / S&P 500 / T-bill benchmarks. No build step, no framework — one HTML file
 Working sessions have since (1) fixed **correctness bugs in the tax/P&L logic** (two QA passes),
 (2) replaced a client-side Twelve Data API-key feature with a **hosted benchmark endpoint**, (3) rebuilt
 the **UI as an editable "story"** with a live result + sensitivity table, and (4) fixed **save/email**.
-**§4 is the current, canonical statement of the tax/finance invariants you must not regress**; **§11–§15
-are the dated change history** behind them (read §4 as truth — if a §11–§15 note ever conflicts, §4 wins).
+**§4 is the current, canonical statement of the tax/finance invariants you must not regress**; **§11–§18
+are the dated change history** behind them (read §4 as truth — if a §11–§18 note ever conflicts, §4 wins).
 
 ---
 
@@ -147,8 +147,9 @@ Three regimes by purchase date:
   silently computes or exports with a defaulted value. A sub-1-year loan tenure is clamped to 1 year.
 - **Negative amounts block the calc** — `_negField` is in the invalid guard, so a negative in ANY field
   (price, sale, fee) hides results with the "amount is negative" message; a money chip keeps a visible
-  leading `-` (not silently flipped positive). **Occupancy > 100%** warns ("treated as 100%") and the math
-  clamps to 100. The break-even cushion copy guards a `/ sp` divide so a S$0 sale never prints `+Infinity`.
+  leading `-` (not silently flipped positive). **Occupancy is visibly clamped to 0–100 in the field itself**
+  (typing 150 snaps the field to 100, −20 to 0), so the calc/export can never use a value the UI doesn't show.
+  The break-even cushion copy guards a `/ sp` divide so a S$0 sale never prints `+Infinity`.
 - A **sale price of 0 is valid** (total loss / gift) — the guard requires the field *provided*, not truthy;
   the **purchase price** must still be > 0.
 - When inputs are missing/invalid, `calculate()` hides `#results`, **nulls `lastReport`, destroys the chart,
@@ -158,8 +159,16 @@ Three regimes by purchase date:
 - A break-even ≤ 0 shows **"S$0 or below"** / "profitable at any price" (never a misleading positive).
 - Scenario **rate/sale-price** sliders persist across base edits; the scenario **LTV re-syncs** to the main
   LTV (it's absolute). No "stale base" warning (results are live).
-- **A11y:** section titles are `role="heading"`; `#results` has no broad `aria-live` — a small `#srSummary`
-  (`role="status"`) announces a one-line Net-P&L summary on recalc.
+- **A11y & touch:** section titles are **native `<h2 class="section-title">`** under the page's single `<h1>`
+  (a CSS margin/size reset keeps them reading as labels, not big headings); range sliders use a **26px thumb /
+  8px track** for touch; `#results` has no broad `aria-live` — a small `#srSummary` (`role="status"`) announces
+  a one-line Net-P&L summary on recalc.
+- **Prefilled example fields clear their untouched example on focus** (`purchasePrice`, `salePrice`,
+  `holdYearsQuick`, `fixedRate`, `loanTenure`) so the first keystroke starts a fresh number and can never
+  concatenate the example with typed digits (no "1,800,000,700,000"); an un-typed focus restores the example on
+  blur. This replaced select-on-focus, which didn't survive a real click's mouseup or `formatMoney`'s caret rewrites.
+- The top **BSD/ABSD hint chips recompute on every price, valuation AND purchase-date change**, so they always
+  match the date-aware duty the calc uses (a 2018-02-19 purchase shows the pre-2018 3%-top BSD = S$54,600 on S$2M).
 
 > ⚠️ SG stamp-duty rules change by policy. Re-verify §4 against IRAS/MAS (§10) periodically; the rates
 > and dates are hardcoded intentionally (there is no real-time rates API).
@@ -430,3 +439,38 @@ Also fixed here: the ABSD "rates effective" chip badge now includes the 16 Dec 2
    and typing no longer yields "1,800,000,700,000".
 4. **"See the full breakdown"** CTA now calls `showFullBreakdown()`: it computes, **expands the collapsed
    cost-breakdown table**, and scrolls to it (previously it only scrolled and left the table collapsed).
+
+---
+
+## 18. Correctness & UX re-fixes — fifth QA pass (2026-07-02)
+
+Owner re-reported that four earlier fixes were still visibly broken in real use (they were, or were only
+half-fixed), plus a mobile/a11y polish pass. All re-verified with **real keystroke/click interaction** (the
+earlier passes had tested some of these by calling functions directly, which masked the actual UI bug):
+
+1. **Occupancy now visibly clamps to 0–100 in the field.** The fourth-pass "warn but keep calculating at a
+   capped 100%" was insufficient — the field could still *show* 150 while the calc/export silently used 100.
+   `updateRentalCalc()` now writes the clamped value back to `#occupancy` (150 → 100, −20 → 0), so what you
+   see is what's computed; the now-moot ">100% warning" was removed.
+2. **Historical `#bsdHint` now matches the date-aware BSD.** `updateBsdHint()` was date-aware but only wired to
+   price/valuation input, not the date picker, so changing the purchase date left the top chip stale
+   (2018-02-19 showed S$69,600 instead of S$54,600). `purchaseDate`'s `onchange` now runs
+   `updateAbsdHint(); updateBsdHint()`. Verified the chip flips S$69,600 ↔ S$54,600 on the date change.
+3. **Sale-field append fixed for real (clear-on-focus).** Fourth-pass select-on-focus did not survive a real
+   click's mouseup or `formatMoney`'s per-keystroke caret rewrites — typing into the prefilled sale field gave
+   "1,800,000,700,000" (append) or "0" (mid-type corruption from a deferred select). Replaced with **clear the
+   untouched example on focus** (restore on an un-typed blur). Typing 700000 now yields "700,000"; confirmed
+   with real `pressSequentially` keystrokes, not a direct value set.
+4. **"See the full breakdown" confirmed expanding.** Re-tested with a real hit-tested pointer click (verified
+   nothing overlays the button): `#breakdownBody` goes none → block with 19 rows and scrolls into view. The
+   owner's "still broken" was a stale cached/deployed copy — the live reference URL now serves the working fix.
+5. **Mobile / a11y polish.** Section labels are now **native `<h2 class="section-title">`** (10 of them) under
+   the single `<h1>` (a CSS reset keeps their look unchanged); range sliders got a **26px thumb / 8px track**
+   for touch. The hub wrapper's floating back-control (in `agent-deployed-applications/src/apps/sg-property-pnl/
+   index.tsx`, NOT this repo) became a **40px blurred "‹ All apps" pill** with a legible label and safe-area
+   insets, replacing the tiny 12px chip.
+
+Verified in-browser on both localhost and the live reference URL: 10 `<h2>` section titles / 0 leftover
+`role="heading"` divs, 8px slider track, occupancy 150→100 & −20→0, `bsdHint` S$69,600↔S$54,600 on date flip,
+sale field → "700,000", breakdown expands to 19 rows, no console errors, no mobile horizontal overflow, and the
+cost breakdown still reconciles exactly to Net P&L.
