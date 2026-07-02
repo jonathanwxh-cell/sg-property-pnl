@@ -563,7 +563,7 @@
 
   <p class="prefill-note">Prefilled with an example — change any <span class="chip-hint">underlined</span> value and your result updates live.</p>
 
-  <button type="button" class="story-cta" onclick="calculate(true)">See the full breakdown <i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+  <button type="button" class="story-cta" onclick="showFullBreakdown()">See the full breakdown <i class="ti ti-arrow-down" aria-hidden="true"></i></button>
 
   <!-- Fine-tune drawer: every remaining detail. Expanded by default (open) so the full inputs are
        visible on first load; the user can still collapse it. To restore progressive disclosure,
@@ -1231,6 +1231,17 @@ function toggleBreakdown() {
   chev.style.transform = opening ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
+/* The story's "See the full breakdown" CTA: compute, EXPAND the (collapsed-by-default) cost breakdown,
+   and scroll to it — previously it only scrolled and left the breakdown collapsed. */
+function showFullBreakdown() {
+  calculate(false);
+  if (getComputedStyle(document.getElementById('results')).display === 'none') return;
+  var body = document.getElementById('breakdownBody');
+  if (body && body.style.display === 'none') toggleBreakdown();
+  var tbl = document.getElementById('breakdownTable');
+  if (tbl) tbl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 /* ─────────────────────────────────────────────
    Core P&L math — pure function of an inputs object.
    Used both for the base-case render in calculate() and for the scenario-analysis
@@ -1406,13 +1417,14 @@ function calculate(scroll) {
     var v = rawNum(id); if (!isNaN(v) && v < 0) _negField = true;
   });
   if (_badField) inputWarnings.push('a number field contains characters that aren’t a valid number — that field is being ignored');
-  if (_negField) inputWarnings.push('negative amounts aren’t valid here and are treated as 0');
+  if (_negField) inputWarnings.push('negative amounts aren’t valid');
+  if (rawNum('occupancy') > 100) inputWarnings.push('occupancy over 100% is treated as 100%');
 
   /* A sale price of 0 is a legitimate scenario (total loss / gift), so require the field to be *provided*
      rather than truthy; the purchase price must still be > 0. An invalid (badInput) field blocks the whole
      calc rather than silently computing with a defaulted value. */
   var spProvided = String(document.getElementById('salePrice').value).replace(/[^0-9.]/g, '') !== '';
-  if (_badField || !pd || !sd || !(pp > 0) || !spProvided || new Date(sd) <= new Date(pd)) {
+  if (_badField || _negField || !pd || !sd || !(pp > 0) || !spProvided || new Date(sd) <= new Date(pd)) {
     /* Inputs not complete/valid — hide results, show the empty state, and CLEAR stale state so nothing
        old lingers in the hidden results, chart or the copy/email export. Live on every keystroke, so no
        alert. (Date-order errors still surface inline via #dateOrderError.) */
@@ -1653,8 +1665,10 @@ function renderSensitivity() {
       el.innerHTML = 'Cushion: your sale price can fall to <strong>' + fmt(be) + '</strong> '
         + '(<strong style="color:var(--color-text-success)">-' + ((sp - be) / sp * 100).toFixed(1) + '%</strong>) before Net P&L turns negative.';
     } else {
-      el.innerHTML = 'Below break-even: your sale price would need to reach <strong>' + fmt(be) + '</strong> '
-        + '(<strong style="color:var(--color-text-danger)">+' + ((be - sp) / sp * 100).toFixed(1) + '%</strong>) just to break even.';
+      /* sp can be 0 (a valid gift/total-loss scenario); guard the divide so the % copy never shows Infinity. */
+      var risePct = sp > 0 ? ' (<strong style="color:var(--color-text-danger)">+' + ((be - sp) / sp * 100).toFixed(1) + '%</strong>)' : '';
+      el.innerHTML = 'Below break-even: your sale price would need to reach <strong>' + fmt(be) + '</strong>'
+        + risePct + ' just to break even.';
     }
   }
 
@@ -2047,6 +2061,14 @@ document.getElementById('saleDate').addEventListener('change', syncHoldYearsFiel
 });
 window.addEventListener('resize', fitStorySelects);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitStorySelects);
+
+/* Prefilled example values: select a field's contents on focus so the first keystroke replaces the
+   example rather than appending to it (clicking "1,800,000" and typing must not give "1,800,000700000").
+   The setTimeout defers past the click's own caret placement so the selection reliably sticks. */
+['purchasePrice','salePrice','holdYearsQuick','fixedRate','loanTenure'].forEach(function(id) {
+  var e = document.getElementById(id);
+  if (e) e.addEventListener('focus', function() { setTimeout(function() { try { e.select(); } catch (x) {} }, 0); });
+});
 
 /* Show the worked-example result immediately (the story starts alive, not blank). */
 calculate(false);

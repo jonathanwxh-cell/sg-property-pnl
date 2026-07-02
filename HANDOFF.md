@@ -145,8 +145,10 @@ Three regimes by purchase date:
   can't overflow to Infinity). A field the browser can't parse (`validity.badInput`) **blocks the calc
   entirely** — `#results` hidden, `lastReport` nulled, empty-state explains — so an invalid field never
   silently computes or exports with a defaulted value. A sub-1-year loan tenure is clamped to 1 year.
-- **Negative amounts are shown** (a money chip keeps a visible leading `-`) and block/flag, rather than
-  being silently flipped positive.
+- **Negative amounts block the calc** — `_negField` is in the invalid guard, so a negative in ANY field
+  (price, sale, fee) hides results with the "amount is negative" message; a money chip keeps a visible
+  leading `-` (not silently flipped positive). **Occupancy > 100%** warns ("treated as 100%") and the math
+  clamps to 100. The break-even cushion copy guards a `/ sp` divide so a S$0 sale never prints `+Infinity`.
 - A **sale price of 0 is valid** (total loss / gift) — the guard requires the field *provided*, not truthy;
   the **purchase price** must still be > 0.
 - When inputs are missing/invalid, `calculate()` hides `#results`, **nulls `lastReport`, destroys the chart,
@@ -414,3 +416,17 @@ Also fixed here: the ABSD "rates effective" chip badge now includes the 16 Dec 2
 8. **Mobile break-even label** moved above the bar (it was overlapping the coloured fill on narrow screens).
 9. **Accessibility:** removed the broad `aria-live` on `#results`; added a concise `#srSummary`
    (`role="status"`) live region announcing the Net-P&L one-liner; section titles are `role="heading"`.
+
+---
+
+## 17. Input-edge fixes — fourth QA pass (2026-07-02)
+
+1. **Occupancy > 100%** warns ("treated as 100%") instead of silently continuing (the math clamps to 100).
+2. **Negative amounts block** the calc (`_negField` added to the invalid guard) — a negative sale no
+   longer computes as a S$0 sale, and the break-even cushion copy can't divide by 0 to print `+Infinity`.
+   The S$0-sale cushion line also guards the divide (shows the break-even amount without a %).
+3. **Prefilled fields select-on-focus** (`purchasePrice`, `salePrice`, `holdYearsQuick`, `fixedRate`,
+   `loanTenure`) so the first keystroke replaces the example instead of appending — clicking "1,800,000"
+   and typing no longer yields "1,800,000,700,000".
+4. **"See the full breakdown"** CTA now calls `showFullBreakdown()`: it computes, **expands the collapsed
+   cost-breakdown table**, and scrolls to it (previously it only scrolled and left the table collapsed).
