@@ -400,6 +400,54 @@
     display: inline-block;
     margin-bottom: 1rem;
   }
+
+  /* ── App layout: inputs column + sticky results column ── */
+  .app-layout { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
+  .col-inputs, .col-results { min-width: 0; }
+  @media (min-width: 900px) {
+    body { max-width: 1180px; }
+    .app-layout { grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr); gap: 1.5rem; }
+    .col-results { position: sticky; top: 1.25rem; }
+    .col-results .section:last-child { margin-bottom: 0; }
+  }
+
+  /* ── Empty state (results column, before inputs are complete) ── */
+  .empty-state {
+    background: var(--color-background-primary);
+    border: 1px dashed var(--color-border-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 2.75rem 1.5rem; text-align: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .empty-state .es-icon { font-size: 32px; color: var(--accent); opacity: .85; display: block; margin-bottom: .6rem; }
+  .empty-state .es-title { font-weight: 600; color: var(--color-text-primary); font-size: 15px; margin-bottom: .3rem; }
+  .empty-state .es-sub { font-size: 13px; color: var(--color-text-tertiary); max-width: 34ch; margin: 0 auto; line-height: 1.5; }
+
+  /* ── Segmented control (replaces dropdowns for categorical inputs) ── */
+  .segmented {
+    display: flex; width: 100%; gap: 3px; padding: 3px;
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+  }
+  .segmented button {
+    flex: 1 1 0; min-width: 0; appearance: none; -webkit-appearance: none; border: none;
+    cursor: pointer; background: transparent; color: var(--color-text-secondary);
+    font-family: inherit; font-size: 13px; font-weight: 600; padding: 9px 4px; letter-spacing: -0.01em;
+    border-radius: calc(var(--border-radius-md) - 3px);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+  .segmented button:hover { color: var(--color-text-primary); }
+  .segmented button[aria-pressed="true"] {
+    background: var(--color-background-primary); color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+  .segmented button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+
+  /* ── Live indicator on the results header ── */
+  .live-badge { font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--color-text-tertiary); display: inline-flex; align-items: center; gap: 6px; }
+  .live-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-success); box-shadow: 0 0 0 3px var(--color-background-success); }
 </style>
 </head>
 <body>
@@ -414,26 +462,40 @@
   ⓘ This is an <strong>estimate only</strong>, not financial advice. Stamp duty rates (<abbr class="term" title="Additional Buyer's Stamp Duty">ABSD</abbr>, <abbr class="term" title="Buyer's Stamp Duty">BSD</abbr>, <abbr class="term" title="Seller's Stamp Duty">SSD</abbr>) are hardcoded as of the Apr 2023 (ABSD/BSD) and Jul 2025 (SSD) revisions — always verify current rates against <a href="https://www.iras.gov.sg" target="_blank" rel="noopener">IRAS</a> before transacting. It also excludes <abbr class="term" title="Central Provident Fund">CPF</abbr> (including the accrued interest you must refund to CPF on sale), rental income tax, and loan-eligibility limits (<abbr class="term" title="Total Debt Servicing Ratio">TDSR</abbr>/<abbr class="term" title="Mortgage Servicing Ratio">MSR</abbr>).
 </div>
 
+<div class="app-layout">
+<div class="col-inputs">
+
 <!-- ── Buyer profile ── -->
 <div class="section">
   <div class="section-title">Buyer profile</div>
   <div class="grid2">
     <div class="field">
       <label for="buyerType">Buyer type</label>
-      <select id="buyerType" onchange="updateAbsdHint()">
+      <select id="buyerType" onchange="updateAbsdHint()" hidden>
         <option value="SC">Singapore Citizen (SC)</option>
         <option value="PR">Singapore PR</option>
         <option value="FG">Foreigner</option>
         <option value="EN">Entity (Company)</option>
       </select>
+      <div class="segmented" data-for="buyerType" role="group" aria-label="Buyer type">
+        <button type="button" data-value="SC">SC</button>
+        <button type="button" data-value="PR">PR</button>
+        <button type="button" data-value="FG" title="Foreigner">Foreign</button>
+        <button type="button" data-value="EN" title="Entity (Company)">Entity</button>
+      </div>
     </div>
     <div class="field">
       <label for="propCount">Which property is this for you?</label>
-      <select id="propCount" onchange="updateAbsdHint()">
+      <select id="propCount" onchange="updateAbsdHint()" hidden>
         <option value="1">1st property</option>
         <option value="2">2nd property</option>
         <option value="3">3rd or more</option>
       </select>
+      <div class="segmented" data-for="propCount" role="group" aria-label="Which property">
+        <button type="button" data-value="1">1st</button>
+        <button type="button" data-value="2">2nd</button>
+        <button type="button" data-value="3">3rd+</button>
+      </div>
     </div>
   </div>
   <div id="buyerTypeNote" class="hint" style="margin-top:.5rem"></div>
@@ -586,10 +648,14 @@
   <div class="grid2">
     <div class="field">
       <label for="usagePurpose">Purpose</label>
-      <select id="usagePurpose" onchange="toggleRentalSection()">
+      <select id="usagePurpose" onchange="toggleRentalSection()" hidden>
         <option value="own">Own stay</option>
         <option value="rent">Rental / investment</option>
       </select>
+      <div class="segmented" data-for="usagePurpose" role="group" aria-label="Purpose">
+        <button type="button" data-value="own">Own stay</button>
+        <button type="button" data-value="rent">Rental / investment</button>
+      </div>
     </div>
     <div class="field">
       <label for="agentBuy">Buy-side agent commission (%)</label>
@@ -629,9 +695,18 @@
   </div>
 </div>
 
-<button class="calc-btn" onclick="calculate()">
+<button class="calc-btn" id="calcBtn" onclick="calculate(true)">
   <i class="ti ti-calculator" aria-hidden="true"></i> Calculate P&amp;L
 </button>
+
+</div><!-- /col-inputs -->
+
+<div class="col-results">
+<div class="empty-state" id="emptyState">
+  <i class="ti ti-report-analytics es-icon" aria-hidden="true"></i>
+  <div class="es-title">Your P&amp;L appears here</div>
+  <div class="es-sub">Enter a purchase price and an expected sale price — results update automatically as you type.</div>
+</div>
 
 <!-- ════════════════ RESULTS ════════════════ -->
 <div class="results" id="results" aria-live="polite">
@@ -662,7 +737,7 @@
     <div class="section-title">Scenario analysis</div>
     <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem">
       Try "what if" questions — what if interest rates rise, or you sell for less than planned — to see how your profit changes. Each slider works independently of the others.<br>
-      <strong>These sliders use the result from your last "Calculate P&amp;L" click, not the live form above.</strong> If you edit the form, click Calculate again before trusting these numbers.
+      These sliders explore changes from your current inputs; the base case updates automatically as you edit the form.
     </p>
     <div id="scenStaleWarning" class="field-error" style="display:none">⚠ The form above has changed since you last clicked "Calculate P&amp;L" — these scenario numbers are still based on the older calculation. Click Calculate P&amp;L again to refresh the base case.</div>
 
@@ -740,7 +815,9 @@
     <textarea id="reportFallback" readonly aria-label="Report text" style="display:none;width:100%;margin-top:.75rem;min-height:180px;padding:12px;border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:var(--font-mono);font-size:12px;line-height:1.5;resize:vertical"></textarea>
     <span class="hint" style="margin-top:.6rem">The email option opens your device's mail app with everything pre-filled — you press send. If no mail app opens, use <strong>Copy report</strong> instead.</span>
   </div>
-</div>
+</div><!-- /#results -->
+</div><!-- /col-results -->
+</div><!-- /app-layout -->
 
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
@@ -1125,7 +1202,7 @@ function computePnl(inputs) {
 ───────────────────────────────────────────── */
 var lastInputs = null;
 
-function calculate() {
+function calculate(scroll) {
   /* NaN-safe parse-with-default: unlike `parseFloat(x) || d`, this does not treat a genuine 0 as missing */
   var num = function(id, def) {
     var v = parseFloat(document.getElementById(id).value);
@@ -1164,12 +1241,11 @@ function calculate() {
   var remEligible = (effBt === 'SC' || effBt === 'PR') && pc === '2';
   var remission   = remEligible && document.getElementById('absdRemission').checked;
 
-  if (!pd || !sd || !pp || !sp) {
-    alert('Please fill in purchase date, sale date, purchase price and sale price.');
-    return;
-  }
-  if (new Date(sd) <= new Date(pd)) {
-    alert('Sale date must be after purchase date.');
+  if (!pd || !sd || !pp || !sp || new Date(sd) <= new Date(pd)) {
+    /* Inputs not yet complete/valid — hide results, show the empty state. No alert: this runs live on
+       every keystroke. (Date-order errors still surface inline via updateAbsdHint's #dateOrderError.) */
+    document.getElementById('results').style.display = 'none';
+    var _esHide = document.getElementById('emptyState'); if (_esHide) _esHide.style.display = 'block';
     return;
   }
 
@@ -1274,7 +1350,8 @@ function calculate() {
   initScenarioPanel(out);
 
   document.getElementById('results').style.display = 'block';
-  document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
+  var _esShow = document.getElementById('emptyState'); if (_esShow) _esShow.style.display = 'none';
+  if (scroll) document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 /* ─────────────────────────────────────────────
@@ -1644,6 +1721,41 @@ toggleRentalSection();
    individual field's existing oninput/onchange handler */
 document.body.addEventListener('input', function() { if (lastInputs) updateScenario(); });
 document.body.addEventListener('change', function() { if (lastInputs) updateScenario(); });
+
+/* ── Segmented controls: mirror clicks into the hidden <select> so all existing logic is unchanged ── */
+function refreshSegmented(group) {
+  var sel = document.getElementById(group.getAttribute('data-for'));
+  if (!sel) return;
+  var disabled = sel.disabled;
+  group.style.opacity = disabled ? '0.5' : '';
+  group.style.pointerEvents = disabled ? 'none' : '';
+  [].forEach.call(group.querySelectorAll('button'), function(b) {
+    b.setAttribute('aria-pressed', b.getAttribute('data-value') === sel.value ? 'true' : 'false');
+    b.disabled = disabled;
+  });
+}
+function refreshAllSegmented() { [].forEach.call(document.querySelectorAll('.segmented'), refreshSegmented); }
+[].forEach.call(document.querySelectorAll('.segmented'), function(group) {
+  var sel = document.getElementById(group.getAttribute('data-for'));
+  group.addEventListener('click', function(e) {
+    var btn = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (!btn || btn.disabled || !sel) return;
+    sel.value = btn.getAttribute('data-value');
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    refreshAllSegmented();
+  });
+});
+refreshAllSegmented();
+
+/* ── Live results: recompute (debounced) as the user edits the inputs column. Scenario sliders live
+   in the results column, so they never trigger a full recalc — they only drive updateScenario(). ── */
+var liveTimer = null;
+function liveRecalc() { clearTimeout(liveTimer); liveTimer = setTimeout(function() { calculate(false); }, 220); }
+var inputsCol = document.querySelector('.col-inputs');
+if (inputsCol) {
+  inputsCol.addEventListener('input', liveRecalc);
+  inputsCol.addEventListener('change', liveRecalc);
+}
 </script>
 </body>
 </html>

@@ -209,3 +209,28 @@ match the repo's existing author identity (`git log` shows `Karen Xing`).
 - BSD rates — IRAS: https://www.iras.gov.sg/taxes/stamp-duty/for-property/buying-or-acquiring-property/buyer's-stamp-duty-(bsd)  ·  MOF (6% top): https://www.mof.gov.sg/news-resources/newsroom/buyer-s-stamp-duty-bsd-rates-to-be-raised-for-higher-value-properties/
 - ABSD rates + FTA remission — IRAS: https://www.iras.gov.sg/taxes/stamp-duty/for-property/buying-or-acquiring-property/additional-buyer's-stamp-duty-(absd)
 - LTV limits — MAS: https://www.mas.gov.sg/publications/macroprudential-policies-in-singapore
+
+---
+
+## 11. UI layout & interaction (redesigned 2026-07-02)
+
+The page is a **two-column layout** (`.app-layout`): inputs on the left, a **sticky results panel**
+on the right (`.col-results`). Below 900px it collapses to one column and the results un-stick. Do
+not reintroduce a single-column "long form, results dumped at the bottom" flow — that was the old design.
+
+- **Instant / live calculation.** Results recompute automatically as the user edits any input
+  (debounced `liveRecalc()` bound to the `.col-inputs` container). The "Calculate P&L" button still
+  works and scrolls to the results on mobile, but results are **no longer gated on it** — do not make
+  the button mandatory again.
+- **Empty state.** Before any meaningful input, `#emptyState` is shown and `#results` is hidden; the
+  first real input reveals the results panel. Keep both elements and the toggle.
+- **Segmented controls** replace three dropdowns (buyer type, property count, price basis). Each is a
+  `.segmented` button group with `data-for="<selectId>"`. The real `<select>` still exists (visually
+  hidden) and **remains the source of truth**: a button click sets the select's `value` and dispatches
+  a `change` event, and `refreshAllSegmented()` mirrors state via `aria-pressed` and disables the
+  property-count group for Entity buyers. All original `<select>` / input `id`s are unchanged, so the
+  calculation logic is untouched. **If you add an option, add it to BOTH the hidden `<select>` and the
+  button group** (and give the button a short label; long labels are truncated — e.g. "Foreigner" is
+  shown as "Foreign" with the full name in `title`).
+- Everything else — finance logic, element ids, and the breakdown reconciliation invariant — is exactly
+  as documented in §4–§9. The regression check in §9 still passes.
