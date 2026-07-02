@@ -212,25 +212,39 @@ match the repo's existing author identity (`git log` shows `Karen Xing`).
 
 ---
 
-## 11. UI layout & interaction (redesigned 2026-07-02)
+## 11. UI: the editable-story layout (redesigned 2026-07-02)
 
-The page is a **two-column layout** (`.app-layout`): inputs on the left, a **sticky results panel**
-on the right (`.col-results`). Below 900px it collapses to one column and the results un-stick. Do
-not reintroduce a single-column "long form, results dumped at the bottom" flow — that was the old design.
+The inputs are presented as an **editable plain-English sentence** (`.story`), not a form:
+"As **a Singapore Citizen**, I'm buying **my 1st property** for **S$1,500,000**. I'll **live in it**,
+hold it **5** years, then sell at **S$1,800,000**." Each bold/underlined value is an inline **chip**
+(`.chip`) that is the *real* input control. A live result panel sits alongside (sticky on desktop, and
+stacked below on mobile). Do not turn this back into a labelled grid of fields.
 
-- **Instant / live calculation.** Results recompute automatically as the user edits any input
-  (debounced `liveRecalc()` bound to the `.col-inputs` container). The "Calculate P&L" button still
-  works and scrolls to the results on mobile, but results are **no longer gated on it** — do not make
-  the button mandatory again.
-- **Empty state.** Before any meaningful input, `#emptyState` is shown and `#results` is hidden; the
-  first real input reveals the results panel. Keep both elements and the toggle.
-- **Segmented controls** replace three dropdowns (buyer type, property count, price basis). Each is a
-  `.segmented` button group with `data-for="<selectId>"`. The real `<select>` still exists (visually
-  hidden) and **remains the source of truth**: a button click sets the select's `value` and dispatches
-  a `change` event, and `refreshAllSegmented()` mirrors state via `aria-pressed` and disables the
-  property-count group for Entity buyers. All original `<select>` / input `id`s are unchanged, so the
-  calculation logic is untouched. **If you add an option, add it to BOTH the hidden `<select>` and the
-  button group** (and give the button a short label; long labels are truncated — e.g. "Foreigner" is
-  shown as "Foreign" with the full name in `title`).
-- Everything else — finance logic, element ids, and the breakdown reconciliation invariant — is exactly
-  as documented in §4–§9. The regression check in §9 still passes.
+- **The chips ARE the inputs** (same element `id`s the JS has always used):
+  - `#buyerType`, `#propCount`, `#usagePurpose` are inline `<select>`s (`.chip-select`), auto-sized to
+    the selected option by `fitSelect()` so they read as part of the sentence.
+  - `#purchasePrice` and `#salePrice` are **comma-formatted text inputs** (`type="text"`,
+    `inputmode="numeric"`). `formatMoney()` reformats them with thousands separators on input, and
+    **every place that reads their value strips commas** (`.replace(/,/g,'')`) — the core parser
+    `num()` in `calculate()`, plus `recalcLoan`/`updateBsdHint`/`updateAbsdHint`/`updateRentalCalc`.
+    If you add another money chip, keep both halves of that contract.
+  - `#holdYearsQuick` is a small chip that writes `#saleDate` (= purchase date + N years) via
+    `applyHoldYears()`; editing the exact dates in the drawer syncs it back via `syncHoldYearsField()`.
+- **Everything else lives in the `<details class="more-options">` "Fine-tune the details" drawer**:
+  exact dates, price basis (lump vs PSF), LTV/loan/tenure/rates, fees, valuations, purpose note, rental.
+  `#purchaseLumpField` / `#saleLumpField` are now short pointer notes (kept so `togglePriceBasis()`
+  can still show/hide them when switching to PSF).
+- **Prefilled worked example**: on load the story is filled (SC / 1st / S$1.5M / 5yr / S$1.8M / 2.75% /
+  25yr) and `calculate()` runs so a live result shows immediately. An empty `#purchasePrice` (or
+  `#salePrice`) hides the result via the existing empty-state guard.
+- The **segmented button controls** from the previous revision were removed; the leftover `.segmented`
+  CSS/JS is vestigial (its `querySelectorAll('.segmented')` simply matches nothing) and can be deleted.
+
+**New do-not-regress (added this revision):**
+5. **IRR is floored at -100%** in `computePnl` when ending equity (`totalCashIn + netPnl`) is `<= 0`.
+   A loss larger than the cash invested makes `Math.pow(negativeBase, 1/years)` return **NaN**, which
+   previously crashed `buildLayman` (`Cannot read 'gain' of undefined`). Keep the `endingEquity > 0`
+   guard, and keep `buildLayman`'s empty-filter guard (`lostList[0] ? … : 0`).
+
+Everything in §4–§9 (tax rules, element ids, and the breakdown reconciliation invariant) is unchanged;
+the §9 regression check still passes for the prefilled example and after edits.

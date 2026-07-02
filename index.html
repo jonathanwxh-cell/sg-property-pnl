@@ -448,6 +448,56 @@
   /* ── Live indicator on the results header ── */
   .live-badge { font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--color-text-tertiary); display: inline-flex; align-items: center; gap: 6px; }
   .live-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-success); box-shadow: 0 0 0 3px var(--color-background-success); }
+
+  /* ── Editable-story hero ── */
+  .story { max-width: 34rem; }
+  .story-line {
+    font-size: clamp(1.15rem, 0.98rem + 0.9vw, 1.55rem);
+    line-height: 1.95; font-weight: 400; letter-spacing: -0.011em;
+    color: var(--color-text-primary); margin: 0 0 .15em;
+  }
+  .story-line + .story-line { margin-top: .1em; }
+  .chip-money { white-space: nowrap; font-weight: 600; color: var(--accent); }
+  .chip-wrap { white-space: nowrap; }
+  .chip-wrap .caret { color: var(--accent); font-size: .6em; margin-left: 1px; position: relative; top: -0.14em; pointer-events: none; }
+  .story .chip {
+    font: inherit; font-weight: 600; color: var(--accent);
+    background: transparent; border: none; border-bottom: 2px solid var(--accent-ring);
+    padding: 0 .08em 2px; cursor: pointer; border-radius: 4px 4px 0 0;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .story .chip:hover { background: var(--accent-soft); border-bottom-color: var(--accent); }
+  .story .chip:focus-visible { outline: none; background: var(--accent-soft); border-radius: 4px; box-shadow: 0 0 0 3px var(--accent-ring); }
+  .chip-select { appearance: none; -webkit-appearance: none; -moz-appearance: none; padding-right: .05em; }
+  .chip-num { -moz-appearance: textfield; appearance: textfield; width: 10.5ch; text-align: left; }
+  .chip-num::-webkit-outer-spin-button, .chip-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .chip-num-sm { width: 3.4ch; text-align: center; }
+  .prefill-note { font-size: 13px; color: var(--color-text-tertiary); margin: 1.25rem 0 0; line-height: 1.55; }
+  .prefill-note .chip-hint { color: var(--accent); font-weight: 600; border-bottom: 2px solid var(--accent-ring); }
+
+  /* Story call-to-action (mainly for mobile, where the result stacks below) */
+  .story-cta {
+    display: inline-flex; align-items: center; gap: .4rem; margin-top: 1.1rem;
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--accent);
+    background: transparent; border: 1px solid var(--accent-ring); border-radius: var(--border-radius-md);
+    padding: .55rem .9rem; transition: background .15s ease, border-color .15s ease;
+  }
+  .story-cta:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .story-cta:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+
+  /* ── Fine-tune drawer ── */
+  .more-options { margin-top: 1.75rem; border-top: 1px solid var(--color-border-tertiary); }
+  .more-options > summary {
+    cursor: pointer; list-style: none; user-select: none;
+    display: flex; align-items: center; gap: .5rem;
+    font-size: 14px; font-weight: 600; color: var(--color-text-secondary); padding: 1rem 0 .25rem;
+  }
+  .more-options > summary::-webkit-details-marker { display: none; }
+  .more-options > summary .chev { margin-left: auto; transition: transform .2s ease; font-size: .85em; }
+  .more-options[open] > summary .chev { transform: rotate(180deg); }
+  .more-options > summary:hover { color: var(--color-text-primary); }
+  .more-options-body { padding-top: .25rem; }
+  .more-options-body .section:first-child { margin-top: .5rem; }
 </style>
 </head>
 <body>
@@ -455,7 +505,7 @@
 <header>
   <h1>Property P&amp;L calculator</h1>
   <p class="sub">Singapore residential — your net profit or loss after stamp duties, mortgage &amp; transaction costs.</p>
-  <p class="sub">For buyers, sellers and investors weighing a transaction — fill in the form for an estimate in a couple of minutes.</p>
+  <p class="sub">Tell the story of your deal below — change any <strong>underlined</strong> value and the numbers update as you go.</p>
 </header>
 
 <div class="disclaimer-banner">
@@ -465,40 +515,21 @@
 <div class="app-layout">
 <div class="col-inputs">
 
-<!-- ── Buyer profile ── -->
-<div class="section">
-  <div class="section-title">Buyer profile</div>
-  <div class="grid2">
-    <div class="field">
-      <label for="buyerType">Buyer type</label>
-      <select id="buyerType" onchange="updateAbsdHint()" hidden>
-        <option value="SC">Singapore Citizen (SC)</option>
-        <option value="PR">Singapore PR</option>
-        <option value="FG">Foreigner</option>
-        <option value="EN">Entity (Company)</option>
-      </select>
-      <div class="segmented" data-for="buyerType" role="group" aria-label="Buyer type">
-        <button type="button" data-value="SC">SC</button>
-        <button type="button" data-value="PR">PR</button>
-        <button type="button" data-value="FG" title="Foreigner">Foreign</button>
-        <button type="button" data-value="EN" title="Entity (Company)">Entity</button>
-      </div>
-    </div>
-    <div class="field">
-      <label for="propCount">Which property is this for you?</label>
-      <select id="propCount" onchange="updateAbsdHint()" hidden>
-        <option value="1">1st property</option>
-        <option value="2">2nd property</option>
-        <option value="3">3rd or more</option>
-      </select>
-      <div class="segmented" data-for="propCount" role="group" aria-label="Which property">
-        <button type="button" data-value="1">1st</button>
-        <button type="button" data-value="2">2nd</button>
-        <button type="button" data-value="3">3rd+</button>
-      </div>
-    </div>
-  </div>
-  <div id="buyerTypeNote" class="hint" style="margin-top:.5rem"></div>
+<!-- ══════════════ THE STORY (editable narrative) ══════════════ -->
+<div class="story">
+  <p class="story-line">
+    As <span class="chip-wrap"><select id="buyerType" class="chip chip-select" onchange="updateAbsdHint()" aria-label="Buyer type"><option value="SC">a Singapore Citizen</option><option value="PR">a Singapore PR</option><option value="FG">a Foreigner</option><option value="EN">an Entity</option></select><span class="caret" aria-hidden="true">▾</span></span>,
+    I'm buying <span class="chip-wrap"><select id="propCount" class="chip chip-select" onchange="updateAbsdHint()" aria-label="Which property this is for you"><option value="1">my 1st property</option><option value="2">my 2nd property</option><option value="3">my 3rd+ property</option></select><span class="caret" aria-hidden="true">▾</span></span>
+    for <span class="chip-money">S$<input type="text" inputmode="numeric" id="purchasePrice" class="chip chip-num" placeholder="1,500,000" oninput="formatMoney(this);updateBsdHint();recalcLoan()" aria-label="Purchase price"></span>.
+  </p>
+  <p class="story-line">
+    I'll <span class="chip-wrap"><select id="usagePurpose" class="chip chip-select" onchange="toggleRentalSection()" aria-label="How you'll use it"><option value="own">live in it</option><option value="rent">rent it out</option></select><span class="caret" aria-hidden="true">▾</span></span>,
+    hold it <span class="chip-wrap"><input type="number" id="holdYearsQuick" class="chip chip-num chip-num-sm" min="0" step="0.5" value="5" oninput="applyHoldYears()" aria-label="Years to hold"> years</span>,
+    then sell at <span class="chip-money">S$<input type="text" inputmode="numeric" id="salePrice" class="chip chip-num" placeholder="1,800,000" oninput="formatMoney(this)" aria-label="Expected sale price"></span>.
+  </p>
+
+  <!-- Live tax feedback + options specific to the chosen buyer profile -->
+  <div id="buyerTypeNote" class="hint" style="margin-top:1rem"></div>
   <div class="checkbox-row" id="remissionRow" style="display:none">
     <input type="checkbox" id="absdRemission" onchange="updateAbsdHint()">
     <label for="absdRemission">Married couple (at least one Singapore Citizen) selling your current home within 6 months of this purchase? (<abbr class="term" title="Additional Buyer's Stamp Duty">ABSD</abbr> remission for a couple replacing their only residential property — you pay ABSD upfront and claim it back after selling the first home)</label>
@@ -507,8 +538,16 @@
     <input type="checkbox" id="ftaNational" onchange="updateAbsdHint()">
     <label for="ftaNational">National of the USA, or a national/PR of Iceland, Liechtenstein, Norway or Switzerland? (Free Trade Agreement — accorded the same stamp-duty treatment as a Singapore Citizen)</label>
   </div>
-  <div class="rate-badge-row" id="absdHint"></div>
-</div>
+  <div class="rate-badge-row" id="absdHint" style="margin-top:.6rem"></div>
+
+  <p class="prefill-note">Prefilled with an example — change any <span class="chip-hint">underlined</span> value and your result updates live.</p>
+
+  <button type="button" class="story-cta" onclick="calculate(true)">See the full breakdown <i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+
+  <!-- ══════════════ Fine-tune drawer: every remaining detail ══════════════ -->
+  <details class="more-options">
+    <summary><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> Fine-tune the details — dates, loan &amp; rates, fees, rental <span class="chev" aria-hidden="true">▾</span></summary>
+    <div class="more-options-body">
 
 <!-- ── Transaction dates ── -->
 <div class="section">
@@ -539,9 +578,10 @@
         <option value="psf">Price per sq ft (<abbr class="term" title="Per Square Foot — the common way Singapore property is quoted">PSF</abbr>)</option>
       </select>
     </div>
+    <!-- Purchase price is entered in the story above (#purchasePrice) -->
     <div class="field" id="purchaseLumpField">
-      <label for="purchasePrice">Purchase price (S$)</label>
-      <input type="number" id="purchasePrice" min="0" placeholder="e.g. 1500000" oninput="updateBsdHint();recalcLoan()">
+      <label>Purchase price</label>
+      <div class="hint" style="margin-top:6px">Set in the sentence at the top. Switch to <abbr class="term" title="Per Square Foot">PSF</abbr> here to enter it by size &amp; rate instead.</div>
     </div>
     <div class="field" id="purchaseSqftField" style="display:none">
       <label for="purchaseSqft">Total square footage (sqft)</label>
@@ -610,9 +650,10 @@
         <option value="psf">Price per sq ft (<abbr class="term" title="Per Square Foot — the common way Singapore property is quoted">PSF</abbr>)</option>
       </select>
     </div>
+    <!-- Sale price is entered in the story above (#salePrice) -->
     <div class="field" id="saleLumpField">
-      <label for="salePrice">Expected sale price (S$)</label>
-      <input type="number" id="salePrice" min="0" placeholder="e.g. 1800000">
+      <label>Expected sale price</label>
+      <div class="hint" style="margin-top:6px">Set in the sentence at the top. Switch to <abbr class="term" title="Per Square Foot">PSF</abbr> here to enter it by size &amp; rate instead.</div>
     </div>
     <div class="field" id="saleSqftField" style="display:none">
       <label for="saleSqft">Total square footage (sqft)</label>
@@ -646,16 +687,10 @@
 <div class="section">
   <div class="section-title">Property usage &amp; other costs</div>
   <div class="grid2">
+    <!-- Purpose (live-in vs rent) is chosen in the story above (#usagePurpose) -->
     <div class="field">
-      <label for="usagePurpose">Purpose</label>
-      <select id="usagePurpose" onchange="toggleRentalSection()" hidden>
-        <option value="own">Own stay</option>
-        <option value="rent">Rental / investment</option>
-      </select>
-      <div class="segmented" data-for="usagePurpose" role="group" aria-label="Purpose">
-        <button type="button" data-value="own">Own stay</button>
-        <button type="button" data-value="rent">Rental / investment</button>
-      </div>
+      <label>Purpose</label>
+      <div class="hint" style="margin-top:6px">Chosen in the sentence at the top (&ldquo;live in it&rdquo; / &ldquo;rent it out&rdquo;).</div>
     </div>
     <div class="field">
       <label for="agentBuy">Buy-side agent commission (%)</label>
@@ -695,9 +730,9 @@
   </div>
 </div>
 
-<button class="calc-btn" id="calcBtn" onclick="calculate(true)">
-  <i class="ti ti-calculator" aria-hidden="true"></i> Calculate P&amp;L
-</button>
+    </div><!-- /more-options-body -->
+  </details>
+</div><!-- /story -->
 
 </div><!-- /col-inputs -->
 
@@ -979,7 +1014,7 @@ function updateAbsdHint() {
   if (!pd) { el.innerHTML = ''; ssdEl.style.display = 'none'; dateErrEl.style.display = 'none'; return; }
 
   var absd = getAbsdRate(bt, pc, pd, remission, fta);
-  var pp   = parseFloat(document.getElementById('purchasePrice').value);
+  var pp   = parseFloat(String(document.getElementById('purchasePrice').value).replace(/,/g, ''));
   var pvEl = document.getElementById('purchaseValuation');
   var pv   = pvEl ? (parseFloat(pvEl.value) || 0) : 0;
   var bsd  = pp ? getBsdRate(Math.max(pp, pv), pd) : null;
@@ -1010,7 +1045,7 @@ function updateAbsdHint() {
 }
 
 function updateBsdHint() {
-  var price = parseFloat(document.getElementById('purchasePrice').value);
+  var price = parseFloat(String(document.getElementById('purchasePrice').value).replace(/,/g, ''));
   var val   = parseFloat(document.getElementById('purchaseValuation').value) || 0;
   var pd    = document.getElementById('purchaseDate').value;
   if (!price || !pd) return;
@@ -1042,7 +1077,9 @@ function updatePriceFromBasis(which) {
   var priceFieldId = which === 'purchase' ? 'purchasePrice' : 'salePrice';
   /* Clear (not leave stale) whenever either input is incomplete, so the hidden lump-sum value
      used by calculate() never silently disagrees with what's shown in the sqft/psf fields */
-  document.getElementById(priceFieldId).value = (sqft > 0 && psf > 0) ? Math.round(sqft * psf) : '';
+  var _pf = document.getElementById(priceFieldId);
+  _pf.value = (sqft > 0 && psf > 0) ? Math.round(sqft * psf) : '';
+  formatMoney(_pf);
   if (which === 'purchase') { updateBsdHint(); recalcLoan(); }
 }
 
@@ -1065,7 +1102,7 @@ function updateLtvFromInput() {
   recalcLoan();
 }
 function recalcLoan() {
-  var pp  = parseFloat(document.getElementById('purchasePrice').value) || 0;
+  var pp  = parseFloat(String(document.getElementById('purchasePrice').value).replace(/,/g, '')) || 0;
   var ltvRaw = parseFloat(document.getElementById('ltvPct').value);
   var ltv = isNaN(ltvRaw) ? 75 : ltvRaw;
   if (pp > 0) document.getElementById('loanAmt').value = Math.round(pp * ltv / 100);
@@ -1097,7 +1134,7 @@ function updateRentalCalc() {
   var occ     = Math.min(100, parseFloat(document.getElementById('occupancy').value) || 90);
   var full    = monthly * 12;
   var eff     = full * (occ / 100);
-  var pp      = parseFloat(document.getElementById('purchasePrice').value) || 0;
+  var pp      = parseFloat(String(document.getElementById('purchasePrice').value).replace(/,/g, '')) || 0;
   var y       = pp > 0 ? (full / pp * 100).toFixed(2) : '—';
   var el      = document.getElementById('rentalCalcHint');
   el.innerHTML = monthly > 0
@@ -1170,8 +1207,12 @@ function computePnl(inputs) {
 
   var equity      = pp - loan;
   var totalCashIn = equity + bsd + absd + agentBuyCost + legalBuy;
+  /* If the loss exceeds the total cash invested, ending equity is <= 0 and a fractional-power IRR is
+     undefined (Math.pow of a negative base returns NaN). Floor it at -100% (equity fully wiped out) so
+     the metric and the benchmark comparison stay finite rather than rendering/propagating NaN. */
+  var endingEquity = totalCashIn + netPnl;
   var irr         = holdYears > 0
-    ? (Math.pow((totalCashIn + netPnl) / totalCashIn, 1 / holdYears) - 1) * 100
+    ? (endingEquity > 0 ? (Math.pow(endingEquity / totalCashIn, 1 / holdYears) - 1) * 100 : -100)
     : 0;
   /* Solve netPnl=0 for sale price: agent commission and SSD both scale with sp, legalSell is fixed. */
   var breakEven = (totalEntryCost + totalInterest + totalPropTax + totalMaint
@@ -1205,7 +1246,7 @@ var lastInputs = null;
 function calculate(scroll) {
   /* NaN-safe parse-with-default: unlike `parseFloat(x) || d`, this does not treat a genuine 0 as missing */
   var num = function(id, def) {
-    var v = parseFloat(document.getElementById(id).value);
+    var v = parseFloat(String(document.getElementById(id).value).replace(/,/g, ''));
     return Math.max(0, isNaN(v) ? def : v);
   };
   var bt            = document.getElementById('buyerType').value;
@@ -1689,7 +1730,8 @@ function buildLayman(propIrr, netPnl, equity, holdYears, benchmarks) {
   } else {
     var beaten = benchmarks.filter(function(b){ return propIrr >= b.ann; }).map(function(b){ return b.name; }).join(' and ');
     var lostTo = benchmarks.filter(function(b){ return propIrr <  b.ann; }).map(function(b){ return b.name; }).join(' and ');
-    var diff   = benchmarks.filter(function(b){ return propIrr <  b.ann; })[0].gain - netPnl;
+    var lostList = benchmarks.filter(function(b){ return propIrr <  b.ann; });
+    var diff   = (lostList[0] ? lostList[0].gain : 0) - netPnl;
     comparison = 'This property beats ' + beaten + ' but trails ' + lostTo
       + '. The ' + lostTo + ' would have generated about ' + fmt(diff) + ' more on the same equity.';
   }
@@ -1711,11 +1753,92 @@ function buildLayman(propIrr, netPnl, equity, holdYears, benchmarks) {
 /* ─────────────────────────────────────────────
    Initialise
 ───────────────────────────────────────────── */
+/* Format a money field in place with thousands separators, preserving the caret position. */
+function formatMoney(el) {
+  var raw = String(el.value).replace(/[^0-9]/g, '');
+  var caret = el.selectionStart == null ? String(el.value).length : el.selectionStart;
+  var digitsBefore = String(el.value).slice(0, caret).replace(/[^0-9]/g, '').length;
+  if (!raw) { el.value = ''; return; }
+  var formatted = Number(raw).toLocaleString('en-US');
+  el.value = formatted;
+  var i = 0, count = 0;
+  for (; i < formatted.length && count < digitsBefore; i++) {
+    var c = formatted.charCodeAt(i);
+    if (c >= 48 && c <= 57) count++;
+  }
+  try { el.setSelectionRange(i, i); } catch (e) {}
+}
+/* Quick "hold N years" chip in the story writes the sale date (purchase date + N years). */
+function applyHoldYears() {
+  var y = parseFloat(document.getElementById('holdYearsQuick').value);
+  if (isNaN(y) || y < 0) return;
+  var pd = document.getElementById('purchaseDate').value;
+  if (!pd) return;
+  var sale = new Date(new Date(pd).getTime() + y * 365.25 * 24 * 60 * 60 * 1000);
+  var sdEl = document.getElementById('saleDate');
+  sdEl.value = sale.toISOString().split('T')[0];
+  sdEl.dispatchEvent(new Event('change', { bubbles: true }));
+}
+/* Keep the story's "N years" chip in step when the exact dates are edited in the drawer. */
+function syncHoldYearsField() {
+  var pd = document.getElementById('purchaseDate').value, sd = document.getElementById('saleDate').value;
+  var hy = document.getElementById('holdYearsQuick');
+  if (!hy || !pd || !sd) return;
+  var y = (new Date(sd) - new Date(pd)) / (365.25 * 24 * 60 * 60 * 1000);
+  if (y > 0) hy.value = Math.round(y * 10) / 10;
+}
+/* Size an inline <select> to its selected option so it sits cleanly inside the sentence. */
+function fitSelect(sel) {
+  if (!sel || !sel.options[sel.selectedIndex]) return;
+  var m = document.getElementById('__selMirror');
+  if (!m) {
+    m = document.createElement('span'); m.id = '__selMirror';
+    m.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;top:-9999px;left:-9999px';
+    document.body.appendChild(m);
+  }
+  var cs = getComputedStyle(sel);
+  m.style.fontSize = cs.fontSize; m.style.fontFamily = cs.fontFamily;
+  m.style.fontWeight = cs.fontWeight; m.style.letterSpacing = cs.letterSpacing;
+  m.textContent = sel.options[sel.selectedIndex].text;
+  sel.style.width = (m.offsetWidth + 2) + 'px';
+}
+function fitStorySelects() {
+  ['buyerType', 'propCount', 'usagePurpose'].forEach(function (id) { fitSelect(document.getElementById(id)); });
+}
+
 var today = new Date().toISOString().split('T')[0];
 document.getElementById('purchaseDate').value = today;
 document.getElementById('saleDate').value = new Date(Date.now() + 5*365.25*24*60*60*1000).toISOString().split('T')[0];
+
+/* Prefill a worked example so the story reads as a living scenario, not a blank form. */
+(function prefillExample() {
+  var set = function (id, v) { var el = document.getElementById(id); if (el && !el.value) el.value = v; };
+  set('purchasePrice', 1500000);
+  set('salePrice', 1800000);
+  set('fixedRate', 2.75);
+  set('loanTenure', 25);
+})();
+formatMoney(document.getElementById('purchasePrice'));
+formatMoney(document.getElementById('salePrice'));
+
 updateAbsdHint();
 toggleRentalSection();
+recalcLoan();
+updateBsdHint();
+syncHoldYearsField();
+fitStorySelects();
+
+/* Keep the story chip + inline selects reactive as inputs, dates, fonts and viewport change. */
+document.getElementById('purchaseDate').addEventListener('change', syncHoldYearsField);
+document.getElementById('saleDate').addEventListener('change', syncHoldYearsField);
+['buyerType', 'propCount', 'usagePurpose'].forEach(function (id) {
+  var el = document.getElementById(id); if (el) el.addEventListener('change', function () { fitSelect(el); });
+});
+window.addEventListener('resize', fitStorySelects);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitStorySelects);
+
+/* Show the worked-example result immediately (the story starts alive, not blank). */
+calculate(false);
 
 /* Re-check scenario staleness on any edit to a base-case field, without touching every
    individual field's existing oninput/onchange handler */
