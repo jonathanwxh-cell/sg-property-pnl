@@ -498,6 +498,20 @@
   .more-options > summary:hover { color: var(--color-text-primary); }
   .more-options-body { padding-top: .25rem; }
   .more-options-body .section:first-child { margin-top: .5rem; }
+
+  /* ── Scenario: downside break-even callout + sensitivity table ── */
+  .scen-breakeven { margin: 0 0 1.1rem; padding: .7rem .9rem; border-radius: var(--border-radius-md); font-size: 13.5px; line-height: 1.55; background: var(--color-background-secondary); border: 1px solid var(--color-border-tertiary); }
+  .scen-breakeven strong { font-weight: 600; }
+  .sensitivity-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .sensitivity-table th, .sensitivity-table td { padding: 7px 8px; border-bottom: 1px solid var(--color-border-tertiary); text-align: right; }
+  .sensitivity-table th:first-child, .sensitivity-table td:first-child { text-align: left; }
+  .sensitivity-table thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--color-text-tertiary); font-weight: 600; }
+  .sensitivity-table tbody td:first-child { color: var(--color-text-secondary); }
+  .sensitivity-table tr.base td { font-weight: 700; background: var(--accent-soft); }
+  .sensitivity-table tr.base td:first-child { color: var(--color-text-primary); }
+  .sensitivity-table .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sensitivity-table td.pos { color: var(--color-text-success); }
+  .sensitivity-table td.neg { color: var(--color-text-danger); }
 </style>
 </head>
 <body>
@@ -777,7 +791,7 @@
       Try "what if" questions — what if interest rates rise, or you sell for less than planned — to see how your profit changes. Each slider works independently of the others.<br>
       These sliders explore changes from your current inputs; the base case updates automatically as you edit the form.
     </p>
-    <div id="scenStaleWarning" class="field-error" style="display:none">⚠ The form above has changed since you last clicked "Calculate P&amp;L" — these scenario numbers are still based on the older calculation. Click Calculate P&amp;L again to refresh the base case.</div>
+    <div id="downsideBreakeven" class="scen-breakeven"></div>
 
     <div class="field" style="margin-bottom:1rem">
       <label for="scenLtv">Loan-to-value <span id="scenLtvLabel" aria-live="polite" style="color:var(--color-text-primary);font-weight:500"></span></label>
@@ -814,6 +828,13 @@
         <div class="metric-val" id="scenRevisedIrr"></div>
         <div style="font-size:12px;margin-top:2px" id="scenIrrDelta"></div>
       </div>
+    </div>
+
+    <!-- Sensitivity: pre-baked downside/upside cases at a glance (base-driven, updates as you edit the deal) -->
+    <div class="sensitivity">
+      <div class="section-title" style="font-size:14px;margin-top:1.75rem">Sensitivity — how the deal holds up</div>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:.25rem 0 .75rem">Common shocks applied one at a time to your current inputs, so you can see the downside at a glance without dragging the sliders.</p>
+      <table class="sensitivity-table" id="sensitivityTable"></table>
     </div>
   </div>
 
@@ -1446,29 +1467,26 @@ function calculate(scroll) {
 /* ─────────────────────────────────────────────
    Scenario analysis
 ───────────────────────────────────────────── */
-var lastFormSnapshot = null;
-
-/* Captures every form field that feeds calculate(), so updateScenario() can detect
-   whether the form above has been edited since the scenario panel's base case was set */
-function currentFormSnapshot() {
-  var ids = ['buyerType','propCount','purchaseDate','saleDate','purchasePrice','ltvPct','loanTenure',
-    'fixedRate','fixedPeriod','floatRate','legalBuy','salePrice','agentComm','legalSell','agentBuy',
-    'propTax','maintenance','usagePurpose','monthlyRent','occupancy','rentalExpenses'];
-  var parts = ids.map(function(id) { return document.getElementById(id).value; });
-  parts.push(document.getElementById('absdRemission').checked);
-  return parts.join('|');
-}
+/* The scenario sliders persist across base-case edits (a "+2pp" or "-10%" delta stays meaningful
+   against the new base), so there is no "stale" state to warn about. scenReady tracks whether the
+   sliders have been seeded with the initial base values yet. */
+var scenReady = false;
 
 function initScenarioPanel(baseOut) {
-  document.getElementById('scenLtv').value        = lastInputs.ltvPct;
-  document.getElementById('scenLtv').max           = ltvCap();
-  document.getElementById('scenRateDelta').value   = 0;
-  document.getElementById('scenPsfDelta').value    = 0;
-  document.getElementById('scenBaseNetPnl').textContent = fmtSgn(baseOut.netPnl);
-  document.getElementById('scenBaseIrr').textContent    = baseOut.irr.toFixed(2) + '%';
-  lastFormSnapshot = currentFormSnapshot();
-  document.getElementById('scenStaleWarning').style.display = 'none';
+  var slider = document.getElementById('scenLtv');
+  slider.max = ltvCap();
+  if (!scenReady) {
+    /* Seed the sliders to the base case once; after that keep the user's positions across edits so a
+       scenario isn't wiped every time the deal is tweaked. */
+    slider.value = lastInputs.ltvPct;
+    document.getElementById('scenRateDelta').value = 0;
+    document.getElementById('scenPsfDelta').value  = 0;
+    scenReady = true;
+  } else if ((parseFloat(slider.value) || 0) > ltvCap()) {
+    slider.value = ltvCap();   // keep within a newly-lowered cap (e.g. after switching to a 2nd property)
+  }
   updateScenario();
+  renderSensitivity();
 }
 
 function resetScenario() {
@@ -1481,8 +1499,6 @@ function resetScenario() {
 
 function updateScenario() {
   if (!lastInputs) return;
-  document.getElementById('scenStaleWarning').style.display =
-    (lastFormSnapshot !== null && currentFormSnapshot() !== lastFormSnapshot) ? 'block' : 'none';
   var scenLtv       = Math.max(0, Math.min(ltvCap(), parseFloat(document.getElementById('scenLtv').value) || 0));
   var rateDelta      = parseFloat(document.getElementById('scenRateDelta').value) || 0;
   var psfDelta       = parseFloat(document.getElementById('scenPsfDelta').value) || 0;
@@ -1518,6 +1534,47 @@ function updateScenario() {
   document.getElementById('scenNetPnlDelta').style.color  = pnlDelta >= 0 ? 'var(--color-text-success)' : 'var(--color-text-danger)';
   document.getElementById('scenIrrDelta').textContent = (irrDelta >= 0 ? '+' : '') + irrDelta.toFixed(2) + ' pp vs base';
   document.getElementById('scenIrrDelta').style.color  = irrDelta >= 0 ? 'var(--color-text-success)' : 'var(--color-text-danger)';
+}
+
+/* Base-driven sensitivity: downside break-even cushion + a table of one-at-a-time shocks. Recomputed
+   from lastInputs on every base recalc (via initScenarioPanel), independent of the scenario sliders. */
+function renderSensitivity() {
+  if (!lastInputs) return;
+  var li = lastInputs, base = computePnl(li);
+
+  var be = base.breakEven, sp = li.sp, el = document.getElementById('downsideBreakeven');
+  if (el) {
+    if (isFinite(be) && be > 0 && sp > be) {
+      el.innerHTML = 'Cushion: your sale price can fall to <strong>' + fmt(be) + '</strong> '
+        + '(<strong style="color:var(--color-text-success)">-' + ((sp - be) / sp * 100).toFixed(1) + '%</strong>) before Net P&L turns negative.';
+    } else if (isFinite(be) && be > 0) {
+      el.innerHTML = 'Below break-even: your sale price would need to reach <strong>' + fmt(be) + '</strong> '
+        + '(<strong style="color:var(--color-text-danger)">+' + ((be - sp) / sp * 100).toFixed(1) + '%</strong>) just to break even.';
+    } else {
+      el.innerHTML = 'At these commission / SSD rates the deal cannot break even on sale price alone.';
+    }
+  }
+
+  var rows = [
+    { label: 'Base case', ov: {}, base: true },
+    { label: 'Rates +1pp', ov: { fr: li.fr + 1, flr: li.flr + 1 } },
+    { label: 'Rates +2pp', ov: { fr: li.fr + 2, flr: li.flr + 2 } },
+    { label: 'Rates +3pp', ov: { fr: li.fr + 3, flr: li.flr + 3 } },
+    { label: 'Sale price -5%',  ov: { sp: li.sp * 0.95 } },
+    { label: 'Sale price -10%', ov: { sp: li.sp * 0.90 } },
+    { label: 'Sale price -20%', ov: { sp: li.sp * 0.80 } },
+    { label: 'Bigger downpayment (LTV -20pp)', ov: { ltvPct: Math.max(0, li.ltvPct - 20) } }
+  ];
+  var html = '<thead><tr><th>Scenario</th><th>Net P&L</th><th>Return p.a.</th></tr></thead><tbody>';
+  rows.forEach(function(r) {
+    var o = computePnl(Object.assign({}, li, r.ov));
+    html += '<tr' + (r.base ? ' class="base"' : '') + '>'
+      + '<td>' + r.label + '</td>'
+      + '<td class="num ' + (o.netPnl >= 0 ? 'pos' : 'neg') + '">' + fmtSgn(o.netPnl) + '</td>'
+      + '<td class="num ' + (o.irr >= 0 ? 'pos' : 'neg') + '">' + (o.irr >= 0 ? '+' : '') + o.irr.toFixed(1) + '%</td>'
+      + '</tr>';
+  });
+  document.getElementById('sensitivityTable').innerHTML = html + '</tbody>';
 }
 
 /* ─────────────────────────────────────────────

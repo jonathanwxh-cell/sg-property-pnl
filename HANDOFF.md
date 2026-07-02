@@ -275,3 +275,26 @@ Eight issues from a QA review were fixed. Do not regress:
    the tier ends, and the holding-period metric shows days + the cliff date.
 8. Live recalc covers valuation fields (they live inside .col-inputs), so purchase/sale valuation edits
    update the P&L immediately - no stale results.
+
+---
+
+## 13. Scenario analysis + sensitivity (2026-07-02)
+
+The "Scenario analysis" panel was tested (revised figures verified exact against computePnl across LTV,
+rate and sale-price sliders, singly and combined) and improved:
+
+- Sliders persist across base edits. initScenarioPanel() seeds the three sliders (LTV, rate delta,
+  sale-price delta) once via the scenReady flag, then keeps the user's positions and re-applies the
+  deltas to the new base. Previously every keystroke reset them. resetScenario() still returns to base.
+- Removed the vestigial stale-warning (#scenStaleWarning + currentFormSnapshot/lastFormSnapshot):
+  results are live, so there is no "stale base" to warn about, and its copy referenced the removed
+  Calculate button.
+- Downside break-even cushion (#downsideBreakeven): shows how far the sale price can fall (to the
+  break-even price, as a %) before Net P&L goes negative - the single most useful risk number.
+- Sensitivity table (#sensitivityTable, renderSensitivity()): pre-baked one-at-a-time shocks
+  (rates +1/+2/+3pp, sale -5/-10/-20%, bigger downpayment), each with Net P&L + annualised return,
+  colour-coded, base row highlighted. Base-driven: recomputed from lastInputs on every base recalc,
+  independent of the sliders.
+
+Everything routes through the same computePnl(), so the reconciliation invariant and all tax rules apply
+unchanged.
