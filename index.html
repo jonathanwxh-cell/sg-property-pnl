@@ -624,7 +624,7 @@
     </div>
     <div class="field">
       <label for="loanTenure">Loan tenure (years)</label>
-      <input type="number" id="loanTenure" placeholder="30" min="1" max="35">
+      <input type="number" id="loanTenure" placeholder="30" min="1" max="35" oninput="updateLtvCap()">
     </div>
     <div class="field">
       <label for="fixedRate">Fixed rate (% p.a.)</label>
@@ -647,7 +647,7 @@
     </div>
     <div class="field">
       <label for="purchaseValuation">Market valuation at purchase (S$, optional)</label>
-      <input type="number" id="purchaseValuation" min="0" placeholder="only if higher than price" oninput="updateBsdHint()">
+      <input type="number" id="purchaseValuation" min="0" placeholder="only if higher than price" oninput="updateBsdHint();updateAbsdHint()">
       <span class="hint"><abbr class="term" title="Buyer's Stamp Duty">BSD</abbr> &amp; <abbr class="term" title="Additional Buyer's Stamp Duty">ABSD</abbr> are charged on the higher of price or market value — leave blank if buying at market.</span>
     </div>
   </div>
@@ -901,11 +901,16 @@ var dayAfter = function(d) { var n = new Date(d); n.setDate(n.getDate() + 1); re
 ───────────────────────────────────────────── */
 function getBsdRate(price, date) {
   var d = new Date(date);
-  var feb23 = new Date('2023-02-15');
+  var feb23 = new Date('2023-02-15'), feb18 = new Date('2018-02-20');
   if (d >= feb23) {
     return calcProg(price, [[180000,1],[180000,2],[640000,3],[500000,4],[1500000,5],[Infinity,6]]);
   }
-  return calcProg(price, [[180000,1],[180000,2],[640000,3],[Infinity,4]]);
+  if (d >= feb18) {
+    /* 20 Feb 2018 – 14 Feb 2023: 4% top band above $1m. */
+    return calcProg(price, [[180000,1],[180000,2],[640000,3],[Infinity,4]]);
+  }
+  /* Before 20 Feb 2018 the BSD top rate was 3% (the 4% band was introduced on 20 Feb 2018). */
+  return calcProg(price, [[180000,1],[180000,2],[Infinity,3]]);
 }
 
 function calcProg(amount, bands) {
@@ -942,13 +947,14 @@ function getAbsdRate(bt, pc, date, remission, fta) {
 
 function getSsdInfo(pd, sd) {
   var pDate = new Date(pd), sDate = new Date(sd);
-  /* IRAS sets the SSD tier by calendar holding period (acquisition date to disposal date):
-     disposing on or before the Nth anniversary counts as "held up to N years". Using date
-     anniversaries (not a 365.25-day count) keeps exact-anniversary and leap-year sales in the
-     correct tier. The applicable regime is fixed by the purchase date. */
+  /* IRAS sets the SSD tier by calendar holding period (acquisition date to disposal date). Disposing
+     ON the Nth anniversary counts as "held MORE than N years" — e.g. bought 21 Mar 2023, sold on/after
+     21 Mar 2026 => no SSD. So a tier applies strictly BEFORE the anniversary (within(n) = sDate < anniv(n));
+     the last chargeable day is the anniversary minus one. Date anniversaries (not a 365.25-day count)
+     keep exact-anniversary and leap-year sales in the correct tier. Regime is fixed by the purchase date. */
   var jul25 = new Date('2025-07-04'), mar17 = new Date('2017-03-11'), jan11 = new Date('2011-01-14');
   var anniv  = function(n) { var d = new Date(pDate); d.setFullYear(d.getFullYear() + n); return d; };
-  var within = function(n) { return sDate <= anniv(n); };
+  var within = function(n) { return sDate < anniv(n); };
   var tiers, regime;
   if (pDate >= jul25)      { tiers = [[1,16],[2,12],[3,8],[4,4]]; regime = 'Jul 2025+ regime'; }
   else if (pDate >= mar17) { tiers = [[1,12],[2,8],[3,4]];        regime = 'Mar 2017 regime'; }
@@ -957,9 +963,11 @@ function getSsdInfo(pd, sd) {
   for (var i = 0; i < tiers.length; i++) {
     var n = tiers[i][0], rate = tiers[i][1];
     if (within(n)) {
-      /* boundary = last day this tier applies (the Nth anniversary); selling AFTER it drops a tier */
-      return { rate:rate, label:'SSD ' + rate + '% (held ≤' + n + 'yr, ' + regime + ')',
-               boundary:anniv(n), boundaryYr:n, nextRate:(i + 1 < tiers.length ? tiers[i+1][1] : 0) };
+      /* boundary = last day this tier applies = the day BEFORE the Nth anniversary; selling on the
+         anniversary itself (boundary + 1) falls into the next, lower tier. */
+      var end = new Date(anniv(n)); end.setDate(end.getDate() - 1);
+      return { rate:rate, label:'SSD ' + rate + '% (held under ' + n + 'yr, ' + regime + ')',
+               boundary:end, boundaryYr:n, nextRate:(i + 1 < tiers.length ? tiers[i+1][1] : 0) };
     }
   }
   return { rate:0, label:'', boundary:null, boundaryYr:null, nextRate:0 };
@@ -1149,7 +1157,13 @@ function recalcLoan() {
 function ltvCap() {
   if (document.getElementById('buyerType').value === 'EN') return 75;
   var pc = parseInt(document.getElementById('propCount').value, 10);
-  return pc >= 3 ? 35 : pc === 2 ? 45 : 75;
+  /* MAS lowers the LTV limit to 55/25/15 when the loan tenure exceeds 30 years (or the loan runs past
+     borrower age 65 — not modelled, as age isn't collected). Otherwise 75/45/35 by property count. */
+  var tenure = parseFloat(String(document.getElementById('loanTenure').value).replace(/,/g, ''));
+  var longTenure = !isNaN(tenure) && tenure > 30;
+  if (pc >= 3) return longTenure ? 15 : 35;
+  if (pc === 2) return longTenure ? 25 : 45;
+  return longTenure ? 55 : 75;
 }
 function updateLtvCap() {
   var cap    = ltvCap();
@@ -1157,15 +1171,20 @@ function updateLtvCap() {
   var input  = document.getElementById('ltvPct');
   slider.max = cap; input.max = cap;
   if ((parseFloat(input.value) || 0) > cap) { input.value = cap; slider.value = cap; }
-  var which = cap === 75 ? 'a 1st' : cap === 45 ? 'a 2nd' : 'a 3rd+';
+  var pc = parseInt(document.getElementById('propCount').value, 10);
+  var which = pc >= 3 ? 'a 3rd+' : pc === 2 ? 'a 2nd' : 'a 1st';
+  var tenure = parseFloat(String(document.getElementById('loanTenure').value).replace(/,/g, ''));
+  var longTenure = !isNaN(tenure) && tenure > 30;
   document.getElementById('ltvHint').textContent =
-    'Max ' + cap + '% (MAS limit for ' + which + ' housing loan; lower if tenure > 30 yrs or age > 65 at maturity)';
+    'Max ' + cap + '% (MAS limit for ' + which + ' housing loan'
+    + (longTenure ? ', reduced because the loan tenure exceeds 30 years' : '; lower if tenure > 30 yrs or age > 65 at maturity') + ')';
   recalcLoan();
 }
 
 function updateRentalCalc() {
   var monthly = parseFloat(document.getElementById('monthlyRent').value) || 0;
-  var occ     = Math.min(100, parseFloat(document.getElementById('occupancy').value) || 90);
+  var occRaw  = parseFloat(document.getElementById('occupancy').value);
+  var occ     = Math.min(100, Math.max(0, isNaN(occRaw) ? 90 : occRaw));
   var full    = monthly * 12;
   var eff     = full * (occ / 100);
   var pp      = parseFloat(String(document.getElementById('purchasePrice').value).replace(/,/g, '')) || 0;
@@ -1339,12 +1358,25 @@ function calculate(scroll) {
     var rawTenure = rawNum('loanTenure');
     if (!isNaN(rawTenure) && rawTenure < 1) { tenure = 1; inputWarnings.push('a mortgage must run at least 1 year — loan tenure treated as 1 year (a 0-year tenure would understate interest to zero)'); }
   }
+  /* Flag fields the browser can't parse (e.g. "1e", "--") or that hold a negative — otherwise they
+     silently fall back to a default or 0 and drive a misleading result rather than being questioned. */
+  var _badField = false, _negField = false;
+  ['purchasePrice','salePrice','ltvPct','loanTenure','fixedRate','fixedPeriod','floatRate','legalBuy','purchaseValuation','saleValuation','agentComm','legalSell','agentBuy','propTax','maintenance','monthlyRent','occupancy','rentalExpenses','purchaseSqft','purchasePricePsf','saleSqft','salePricePsf'].forEach(function(id) {
+    var el = document.getElementById(id); if (!el) return;
+    if (el.validity && el.validity.badInput) _badField = true;
+    var v = rawNum(id); if (!isNaN(v) && v < 0) _negField = true;
+  });
+  if (_badField) inputWarnings.push('a number field contains characters that aren’t a valid number — that field is being ignored');
+  if (_negField) inputWarnings.push('negative amounts aren’t valid here and are treated as 0');
 
   if (!pd || !sd || !pp || !sp || new Date(sd) <= new Date(pd)) {
     /* Inputs not yet complete/valid — hide results, show the empty state. No alert: this runs live on
-       every keystroke. (Date-order errors still surface inline via updateAbsdHint's #dateOrderError.) */
+       every keystroke. (Date-order errors still surface inline via updateAbsdHint's #dateOrderError.)
+       Clear stale state so nothing old lingers in the hidden results, chart, or the copy/email export. */
     document.getElementById('results').style.display = 'none';
     var _esHide = document.getElementById('emptyState'); if (_esHide) _esHide.style.display = 'block';
+    lastReport = null;
+    if (benchmarkChartInst) { benchmarkChartInst.destroy(); benchmarkChartInst = null; }
     return;
   }
 
@@ -1382,7 +1414,7 @@ function calculate(scroll) {
     + '<div class="metric"><div class="metric-label">Net P&L</div><div class="metric-val ' + (netPnl>=0?'pos':'neg') + '">' + fmtSgn(netPnl) + '</div></div>'
     + '<div class="metric"><div class="metric-label"><abbr class="term" title="Simplified CAGR on equity: treats the entire holding period as one lump-sum cash flow rather than discounting actual monthly mortgage payments — not a true XIRR.">Annualised return</abbr></div><div class="metric-val ' + (irr>=0?'pos':'neg') + '">' + irr.toFixed(2) + '%</div></div>'
     + '<div class="metric"><div class="metric-label">Holding period</div><div class="metric-val">' + holdMonths + ' mo</div><div style="font-size:11px;color:var(--color-text-tertiary);margin-top:2px">' + holdDays.toLocaleString('en-US') + ' days' + (ssdInfo.rate > 0 && ssdInfo.boundary ? ' · SSD ' + ssdInfo.rate + '% until ' + fmtDate(ssdInfo.boundary) : '') + '</div></div>'
-    + '<div class="metric"><div class="metric-label">Break-even sale price</div><div class="metric-val">' + fmt(breakEven) + '</div></div>'
+    + '<div class="metric"><div class="metric-label">Break-even sale price</div><div class="metric-val">' + (breakEven > 0 ? fmt(breakEven) : 'S$0 or below') + '</div></div>'
     + '<div class="metric"><div class="metric-label">Total interest paid</div><div class="metric-val neg">-' + fmt(totalInterest) + '</div></div>'
     + '<div class="metric"><div class="metric-label">Loan balance still owed at sale</div><div class="metric-val">' + fmt(outstandingLoan) + '</div></div>';
   if (isRental) {
@@ -1398,12 +1430,13 @@ function calculate(scroll) {
   }
 
   /* ── Break-even bar ── */
-  var beRatio  = sp / breakEven;
+  var beRatio  = breakEven > 0 ? sp / breakEven : 1;
   var barColor = sp >= breakEven ? '#1D9E75' : '#D85A30';
+  var beBarText = breakEven > 0 ? fmt(breakEven) : 'S$0 or below';
   document.getElementById('breakeven').innerHTML =
-    '<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:6px">Sale price vs break-even: <strong>' + fmt(sp) + '</strong> vs <strong>' + fmt(breakEven) + '</strong></div>'
+    '<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:6px">Sale price vs break-even: <strong>' + fmt(sp) + '</strong> vs <strong>' + beBarText + '</strong></div>'
     + '<div class="breakeven-bar">'
-    +   '<div class="breakeven-fill" style="width:' + Math.min(beRatio*67,100) + '%;background:' + barColor + '"></div>'
+    +   '<div class="breakeven-fill" style="width:' + Math.min(Math.max(beRatio,0)*67,100) + '%;background:' + barColor + '"></div>'
     +   '<span class="breakeven-label" style="color:' + barColor + '">' + (sp>=breakEven ? 'Above break-even ✓' : 'Below break-even') + '</span>'
     + '</div>';
 
@@ -1544,14 +1577,16 @@ function renderSensitivity() {
 
   var be = base.breakEven, sp = li.sp, el = document.getElementById('downsideBreakeven');
   if (el) {
-    if (isFinite(be) && be > 0 && sp > be) {
+    if (!isFinite(be)) {
+      el.innerHTML = 'At these commission / SSD rates the deal cannot break even on sale price alone.';
+    } else if (be <= 0) {
+      el.innerHTML = 'This deal is profitable even at a <strong>S$0</strong> sale price — there is no downside price break-even.';
+    } else if (sp > be) {
       el.innerHTML = 'Cushion: your sale price can fall to <strong>' + fmt(be) + '</strong> '
         + '(<strong style="color:var(--color-text-success)">-' + ((sp - be) / sp * 100).toFixed(1) + '%</strong>) before Net P&L turns negative.';
-    } else if (isFinite(be) && be > 0) {
+    } else {
       el.innerHTML = 'Below break-even: your sale price would need to reach <strong>' + fmt(be) + '</strong> '
         + '(<strong style="color:var(--color-text-danger)">+' + ((be - sp) / sp * 100).toFixed(1) + '%</strong>) just to break even.';
-    } else {
-      el.innerHTML = 'At these commission / SSD rates the deal cannot break even on sale price alone.';
     }
   }
 
@@ -1592,7 +1627,7 @@ function buildReportText() {
   lines.push('SUMMARY');
   lines.push('Net P&L: ' + fmtSgn(r.netPnl));
   lines.push('Annualised return (simplified CAGR, not true XIRR): ' + r.irr.toFixed(2) + '%');
-  lines.push('Break-even sale price: ' + fmt(r.breakEven));
+  lines.push('Break-even sale price: ' + (r.breakEven > 0 ? fmt(r.breakEven) : 'S$0 or below (profitable at any sale price)'));
   lines.push('Total interest paid: -' + fmt(r.totalInterest));
   lines.push('Loan balance still owed at sale: ' + fmt(r.outstandingLoan));
   if (r.isRental) {

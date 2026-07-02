@@ -298,3 +298,31 @@ rate and sale-price sliders, singly and combined) and improved:
 
 Everything routes through the same computePnl(), so the reconciliation invariant and all tax rules apply
 unchanged.
+
+---
+
+## 14. Correctness fixes — second QA pass (2026-07-02)
+
+1. SSD anniversary boundary. getSsdInfo now uses within(n) = sDate < anniv(n) (strict). IRAS treats a
+   sale ON the Nth anniversary as "more than N years": e.g. bought 21 Mar 2023, sold on/after
+   21 Mar 2026 => no SSD. A tier's last chargeable day is the anniversary minus one (the boundary field).
+2. BSD pre-20 Feb 2018. getBsdRate adds the pre-2018 regime: 1/2/3% only (the 4% band started
+   20 Feb 2018). S$2m before 20 Feb 2018 = S$54,600; 20 Feb 2018-14 Feb 2023 = S$64,600; 15 Feb 2023+ = S$69,600.
+3. MAS LTV for long tenure. ltvCap() returns 55/25/15 (by property count) when loan tenure > 30 years,
+   else 75/45/35. Editing loanTenure re-runs updateLtvCap() to re-clamp. (Age > 65 at maturity still
+   not modelled - age isn't collected.)
+4. Input validation. calculate() flags fields the browser can't parse (validity.badInput) and negative
+   amounts via #inputWarn instead of silently defaulting/zeroing. Money chips stay positive-only.
+5. Stale state on invalid input. When the guard hides #results, lastReport is nulled and the benchmark
+   chart destroyed, so nothing stale can be exported (copy/email already guard null) or linger hidden.
+6. Valuation refreshes the chip. purchaseValuation oninput now also calls updateAbsdHint(), so the
+   prominent ABSD/BSD chip reflects duty on the higher of price or valuation, not just the drawer hint.
+7. Negative break-even. A non-positive break-even shows "S$0 or below" (metric) and "profitable even at
+   a S$0 sale price" (cushion) instead of a misleading positive number; the bar ratio is guarded.
+8. 0% occupancy. updateRentalCalc() uses a NaN-safe parse so 0% occupancy is honoured in the helper text
+   and effective-rent figure (previously || 90 silently turned 0 into 90).
+
+Open item (NOT implemented, needs confirmation): ABSD remission for a married couple where one spouse is
+a foreigner buying their first matrimonial home. Sources conflict on whether a SC+foreigner couple
+qualifies; not added because wrongly showing 0% instead of 60% ABSD would be a serious undercharge.
+Confirm the exact IRAS provision (Stamp Duties (Spouses) (Remission of ABSD) Rules) before implementing.
