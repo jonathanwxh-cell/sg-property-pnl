@@ -7,7 +7,8 @@ costs — and compare it against STI ETF, S&P 500, and 6-month T-bill benchmarks
 It's a **single self-contained HTML file** ([`index.html`](./index.html)): no build step, no
 framework, inline CSS + vanilla JS. Open it in a browser and it works. Dark/light aware, responsive.
 
-**Live demo:** https://agent-deployed-applications-alyosha.zocomputer.io/sg-property-pnl
+**Live demo / reference implementation:** https://agent-deployed-applications-alyosha.zocomputer.io/sg-property-pnl
+— a deployed, known-good build of this code. Compare against it to confirm the intended UI, behaviour, and numbers.
 
 ---
 

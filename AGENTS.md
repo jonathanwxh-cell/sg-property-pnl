@@ -13,6 +13,13 @@ mortgage, costs) and compares it to STI ETF / S&P 500 / T-bill benchmarks.
 **`index.html` is the single source of truth.** (The original repo, `AngsumalinX/sg-property-pnl`,
 kept dated `YYYY-MM-DD-*.html` snapshots; those stay there for history. Do not recreate that pattern.)
 
+## Reference implementation (known-good)
+A deployed, working build of this exact code is live at
+**https://agent-deployed-applications-alyosha.zocomputer.io/sg-property-pnl**. Use it as your reference:
+open it to see the intended UI, behaviour, and numbers, and **compare your local version against it after
+changes** — same inputs should produce the same output and layout. (It's an external deployment that may
+change or move, so treat it as a convenience reference, not a permanent contract.)
+
 ## Working constraints — how to change this codebase (do not violate)
 1. **Keep it ONE self-contained file.** No build step, no framework (React/Vue/Svelte/etc.), no
    bundler, no `npm install`. If you genuinely need a library, add it via a CDN `<script>`/`<link>` —

@@ -195,6 +195,10 @@ match the repo's existing author identity (`git log` shows `Karen Xing`).
 - **FTA**: `getAbsdRate('FG','2',date,false,true)` returns 20 (SC-2nd), not 60.
 - **Benchmark endpoint**: `GET .../benchmarks?years=5` returns `{sti,spy,tbill}`; blocking it must fall
   back to fixed estimates without a console error.
+- **Compare against the reference implementation:** a known-good deployed build is live at
+  https://agent-deployed-applications-alyosha.zocomputer.io/sg-property-pnl — same inputs should produce
+  the same numbers and the same layout there. Use it to sanity-check UI or behaviour after a change.
+  (External deployment; may change/move — a convenience reference, not a contract.)
 
 ---
 
