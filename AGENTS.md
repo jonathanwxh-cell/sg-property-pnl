@@ -82,7 +82,8 @@ change or move, so treat it as a convenience reference, not a permanent contract
   ```
 
 ## First steps for a new agent
-1. Read `HANDOFF.md` end to end.
+1. Skim **`CHANGELOG.md`** for the rounds of testing so far (what's been fixed and why), then read
+   `HANDOFF.md` end to end for the depth.
 2. Open `index.html`, Calculate with the sample inputs above, confirm it renders and the reconciliation
    check passes — that's your baseline.
 3. Make your change; re-run the §9 checks; confirm no console errors and the breakdown still reconciles.

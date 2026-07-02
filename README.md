@@ -18,6 +18,8 @@ This is a fixed & modernized version of the calculator (originally `AngsumalinX/
 Several **tax/finance correctness bugs were fixed** and must not be reintroduced.
 
 - **[`AGENTS.md`](./AGENTS.md)** — the 30-second brief that AI coding agents load automatically.
+- **[`CHANGELOG.md`](./CHANGELOG.md)** — every change so far as the **rounds of testing** that drove
+  them; start here to see what's been done and why.
 - **[`HANDOFF.md`](./HANDOFF.md)** — the full change log, architecture, correctness invariants,
   the external benchmark dependency, deployment, open tasks, and regression checks.
 
