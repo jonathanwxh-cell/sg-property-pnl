@@ -322,7 +322,29 @@ unchanged.
 8. 0% occupancy. updateRentalCalc() uses a NaN-safe parse so 0% occupancy is honoured in the helper text
    and effective-rent figure (previously || 90 silently turned 0 into 90).
 
-Open item (NOT implemented, needs confirmation): ABSD remission for a married couple where one spouse is
+RESOLVED in section 15 (implemented after confirming against IRAS). ABSD remission for a married couple where one spouse is
 a foreigner buying their first matrimonial home. Sources conflict on whether a SC+foreigner couple
 qualifies; not added because wrongly showing 0% instead of 60% ABSD would be a serious undercharge.
 Confirm the exact IRAS provision (Stamp Duties (Spouses) (Remission of ABSD) Rules) before implementing.
+
+
+---
+
+## 15. ABSD spouse remission (Section A) - implemented (2026-07-02)
+
+Verified against IRAS "Remission of ABSD for a Married Couple" (Stamp Duties (Spouses) (Remission of
+ABSD) Rules), Section A: FULL ABSD remission for a married couple buying their FIRST residential property
+jointly where at least one spouse is a Singapore Citizen and neither spouse owns any other residential
+property - regardless of the other spouse's nationality (so SC + foreigner qualifies). It is a full
+remission at stamping (no ABSD paid, no bridging cash) - unlike the Section B replacement refund.
+
+Implementation:
+- getAbsdRate(bt, pc, date, remission, fta, spouseRemitFirst) returns 0 when spouseRemitFirst and it is
+  a 1st property.
+- New checkbox #absdSpouseRemit, shown by updateAbsdHint only for a 1st property with a PR or foreigner
+  profile (a citizen's 1st property is already 0%). Model the couple as the higher-rate spouse (PR/FG).
+- computePnl: when spouseRemit, absdPaid = absd = absdRefund = 0 (no bridging, no refund line); the
+  breakdown shows "ABSD (X%, remitted - spouse relief)". Net P&L equals the citizen first-property case
+  and the table reconciles.
+
+Also fixed here: the ABSD "rates effective" chip badge now includes the 16 Dec 2021 regime.

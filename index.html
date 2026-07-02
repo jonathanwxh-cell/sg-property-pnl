@@ -552,6 +552,10 @@
     <input type="checkbox" id="ftaNational" onchange="updateAbsdHint()">
     <label for="ftaNational">National of the USA, or a national/PR of Iceland, Liechtenstein, Norway or Switzerland? (Free Trade Agreement — accorded the same stamp-duty treatment as a Singapore Citizen)</label>
   </div>
+  <div class="checkbox-row" id="spouseRemitRow" style="display:none">
+    <input type="checkbox" id="absdSpouseRemit" onchange="updateAbsdHint()">
+    <label for="absdSpouseRemit">Buying your <strong>first</strong> home jointly with your spouse, at least one of you a Singapore Citizen, and neither of you owns any other residential property? (<abbr class="term" title="Additional Buyer's Stamp Duty">ABSD</abbr> fully remitted at stamping — Stamp Duties (Spouses) remission)</label>
+  </div>
   <div class="rate-badge-row" id="absdHint" style="margin-top:.6rem"></div>
 
   <p class="prefill-note">Prefilled with an example — change any <span class="chip-hint">underlined</span> value and your result updates live.</p>
@@ -924,12 +928,16 @@ function calcProg(amount, bands) {
   return tax;
 }
 
-function getAbsdRate(bt, pc, date, remission, fta) {
+function getAbsdRate(bt, pc, date, remission, fta, spouseRemitFirst) {
   var d = new Date(date), p = parseInt(pc);
   var apr23 = new Date('2023-04-27'), dec21 = new Date('2021-12-16'), jul18 = new Date('2018-07-06');
   var jan13 = new Date('2013-01-12'), dec11 = new Date('2011-12-08');
   /* Entity/company rate by regime (excludes the +5% non-remittable add-on for housing developers). */
   if (bt === 'EN') return d>=apr23?65:d>=dec21?35:d>=jul18?25:d>=jan13?15:d>=dec11?10:0;
+  /* Stamp Duties (Spouses) remission — Section A: a married couple with at least one Singapore Citizen
+     spouse buying their FIRST residential property jointly, where neither owns any other residential
+     property, pays no ABSD (full remission at stamping). Applies whatever the other spouse's nationality. */
+  if (spouseRemitFirst && p === 1) return 0;
   /* Under Free Trade Agreements, nationals of the USA and nationals/PRs of Iceland, Liechtenstein,
      Norway or Switzerland get the same stamp-duty treatment as a Singapore Citizen. */
   if (fta && bt === 'FG') bt = 'SC';
@@ -1010,7 +1018,9 @@ function updateAbsdHint() {
   var dateErrEl = document.getElementById('dateOrderError');
   var remRow    = document.getElementById('remissionRow');
   var ftaRow    = document.getElementById('ftaRow');
+  var spouseRow = document.getElementById('spouseRemitRow');
   var remission = document.getElementById('absdRemission').checked;
+  var spouseRemit = document.getElementById('absdSpouseRemit').checked;
 
   /* Entity buyers pay a flat ABSD regardless of property count — disable that field to avoid confusion */
   pcSelect.disabled = (bt === 'EN');
@@ -1034,6 +1044,15 @@ function updateAbsdHint() {
     document.getElementById('absdRemission').checked = false;
   }
 
+  /* Section A spouse remission (full, at stamping): first residential property, married couple with
+     at least one SC spouse. Shown only for the profiles that would otherwise pay ABSD on a 1st
+     property (PR or foreigner) — a citizen's 1st property is already 0%. */
+  spouseRow.style.display = (pc === '1' && (bt === 'PR' || bt === 'FG')) ? 'flex' : 'none';
+  if (spouseRow.style.display === 'none') {
+    spouseRemit = false;
+    document.getElementById('absdSpouseRemit').checked = false;
+  }
+
   /* Explain disabled/hidden fields immediately — not gated on purchase date being filled — so a
      buyer never sees a field vanish/grey out with zero on-screen explanation */
   var noteEl = document.getElementById('buyerTypeNote');
@@ -1049,13 +1068,13 @@ function updateAbsdHint() {
 
   if (!pd) { el.innerHTML = ''; ssdEl.style.display = 'none'; dateErrEl.style.display = 'none'; return; }
 
-  var absd = getAbsdRate(bt, pc, pd, remission, fta);
+  var absd = getAbsdRate(bt, pc, pd, remission, fta, spouseRemit);
   var pp   = parseFloat(String(document.getElementById('purchasePrice').value).replace(/,/g, ''));
   var pvEl = document.getElementById('purchaseValuation');
   var pv   = pvEl ? (parseFloat(pvEl.value) || 0) : 0;
   var bsd  = pp ? getBsdRate(Math.max(pp, pv), pd) : null;
   var d    = new Date(pd);
-  var regime = d>=new Date('2023-04-27')?'Apr 2023':d>=new Date('2018-07-06')?'Jul 2018':d>=new Date('2013-01-12')?'Jan 2013':d>=new Date('2011-12-08')?'Dec 2011':'Pre-Dec 2011';
+  var regime = d>=new Date('2023-04-27')?'Apr 2023':d>=new Date('2021-12-16')?'Dec 2021':d>=new Date('2018-07-06')?'Jul 2018':d>=new Date('2013-01-12')?'Jan 2013':d>=new Date('2011-12-08')?'Dec 2011':'Pre-Dec 2011';
   var html = '<span class="badge badge-info">ABSD: ' + absd + '%</span>';
   if (bt === 'EN') html += ' <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">Flat rate — property count not applicable for entities</span>';
   if (bsd !== null) html += ' <span class="badge badge-info">BSD: ' + fmt(bsd) + '</span>';
@@ -1216,6 +1235,7 @@ function computePnl(inputs) {
   var monthlyRent = inputs.monthlyRent, occupancy = inputs.occupancy, rentalExp = inputs.rentalExp;
   var pd = inputs.pd, sd = inputs.sd, bt = inputs.bt, pc = inputs.pc, remission = inputs.remission;
   var fta = inputs.fta, purchaseVal = inputs.purchaseVal || 0, saleVal = inputs.saleVal || 0;
+  var spouseRemit = inputs.spouseRemitFirst && String(pc) === '1' && bt !== 'EN';  // Section A full ABSD remission
 
   /* Loan is always derived from pp*ltvPct here (not read from a DOM field) so a scenario
      override of ltvPct recomputes everything downstream consistently */
@@ -1232,11 +1252,17 @@ function computePnl(inputs) {
   var bsdBase       = Math.max(pp, purchaseVal);
   var ssdBase       = Math.max(sp, saleVal);
   var bsd           = getBsdRate(bsdBase, pd);
-  var absdFullRate  = getAbsdRate(bt, pc, pd, false, fta);   // rate ignoring remission — what is actually paid upfront
-  var absdRate      = remission ? 0 : absdFullRate;          // effective rate for the final (post-refund) P&L
-  var absdPaid      = bsdBase * absdFullRate / 100;          // ABSD cash paid at completion (bridging requirement)
-  var absd          = bsdBase * absdRate / 100;              // net ABSD cost (0 when remitted, i.e. refunded)
-  var absdRefund    = absdPaid - absd;                       // reclaimed later when remission applies (else 0)
+  var absdFullRate  = getAbsdRate(bt, pc, pd, false, fta, false);            // rate before any remission
+  var absdRate      = getAbsdRate(bt, pc, pd, remission, fta, spouseRemit);  // effective rate after remissions
+  var absdPaid, absd, absdRefund;
+  if (spouseRemit) {
+    /* Section A: full remission applied at stamping — nothing is paid, so no bridging cash and no refund. */
+    absdPaid = 0; absd = 0; absdRefund = 0;
+  } else {
+    absdPaid   = bsdBase * absdFullRate / 100;   // paid at completion; a Section B replacement remission reclaims it later
+    absd       = bsdBase * absdRate / 100;        // net ABSD cost (0 when replacement-remitted)
+    absdRefund = absdPaid - absd;
+  }
   var agentBuyCost  = pp * agentBuyPct / 100;
   var ssdInfo       = getSsdInfo(pd, sd);
   var ssd           = ssdBase * ssdInfo.rate / 100;
@@ -1292,7 +1318,7 @@ function computePnl(inputs) {
 
   return {
     loan:loan, holdMonths:holdMonths, holdYears:holdYears,
-    bsd:bsd, absdRate:absdRate, absd:absd, absdFullRate:absdFullRate, absdPaid:absdPaid, absdRefund:absdRefund,
+    bsd:bsd, absdRate:absdRate, absd:absd, absdFullRate:absdFullRate, absdPaid:absdPaid, absdRefund:absdRefund, spouseRemit:spouseRemit,
     agentBuyCost:agentBuyCost,
     ssdInfo:ssdInfo, ssd:ssd, agentSellCost:agentSellCost,
     totalInterest:totalInterest, outstandingLoan:outstandingLoan,
@@ -1347,6 +1373,7 @@ function calculate(scroll) {
   var saleVal     = num('saleValuation', 0);
   var remEligible = (effBt === 'SC' || effBt === 'PR') && pc === '2';
   var remission   = remEligible && document.getElementById('absdRemission').checked;
+  var spouseRemitFirst = pc === '1' && bt !== 'EN' && document.getElementById('absdSpouseRemit').checked;
 
   /* Input sanity: the numeric parser floors negatives at 0, which would silently turn a mistyped
      negative rate — or a zero/blank loan tenure — into a rosier, zero-interest result. Clamp the
@@ -1384,14 +1411,14 @@ function calculate(scroll) {
     pp:pp, sp:sp, ltvPct:ltvPct, tenure:tenure, fr:fr, fp:fp, flr:flr, legalBuy:legalBuy,
     agentCommPct:agentCommPct, legalSell:legalSell, agentBuyPct:agentBuyPct, propTax:propTax, maint:maint,
     isRental:isRental, monthlyRent:monthlyRent, occupancy:occupancy, rentalExp:rentalExp,
-    pd:pd, sd:sd, bt:bt, pc:pc, remission:remission, fta:fta, purchaseVal:purchaseVal, saleVal:saleVal
+    pd:pd, sd:sd, bt:bt, pc:pc, remission:remission, spouseRemitFirst:spouseRemitFirst, fta:fta, purchaseVal:purchaseVal, saleVal:saleVal
   };
   lastInputs = inputs;
 
   var out          = computePnl(inputs);
   var holdMonths   = out.holdMonths, holdYears = out.holdYears;
   var bsd          = out.bsd, absdRate = out.absdRate, absd = out.absd, agentBuyCost = out.agentBuyCost;
-  var absdPaid     = out.absdPaid, absdRefund = out.absdRefund, absdFullRate = out.absdFullRate, peakUpfrontCash = out.peakUpfrontCash;
+  var absdPaid     = out.absdPaid, absdRefund = out.absdRefund, absdFullRate = out.absdFullRate, peakUpfrontCash = out.peakUpfrontCash, spouseRemit = out.spouseRemit;
   var ssdInfo      = out.ssdInfo, ssd = out.ssd, agentSellCost = out.agentSellCost;
   var totalInterest = out.totalInterest, outstandingLoan = out.outstandingLoan, loan = out.loan, equity = out.equity;
   var totalPropTax = out.totalPropTax, totalMaint = out.totalMaint;
@@ -1446,7 +1473,7 @@ function calculate(scroll) {
     + '<tr><td colspan="2" style="font-weight:500;font-size:12px;color:var(--color-text-secondary);padding-top:10px">UPFRONT (CASH)</td></tr>'
     + '<tr><td>Down payment (equity)</td><td>-' + fmt(equity) + '</td></tr>'
     + '<tr><td>BSD</td><td>-' + fmt(bsd) + '</td></tr>'
-    + '<tr><td>ABSD (' + absdFullRate + '%' + (remission ? ', paid upfront then reclaimed' : '') + ')</td><td>' + (absdPaid>0 ? '-'+fmt(absdPaid) : '—') + '</td></tr>'
+    + '<tr><td>ABSD (' + absdFullRate + '%' + (spouseRemit ? ', remitted — spouse relief' : (remission ? ', paid upfront then reclaimed' : '')) + ')</td><td>' + (absdPaid>0 ? '-'+fmt(absdPaid) : '—') + '</td></tr>'
     + (remission ? '<tr><td>ABSD remission refund (after selling your first home, ~6 months)</td><td>+' + fmt(absdRefund) + '</td></tr>' : '')
     + '<tr><td>Buy-side agent commission (' + agentBuyPct + '%)</td><td>' + (agentBuyCost>0 ? '-'+fmt(agentBuyCost) : '—') + '</td></tr>'
     + '<tr><td>Buy-side legal fees</td><td>' + (legalBuy>0 ? '-'+fmt(legalBuy) : '—') + '</td></tr>'
@@ -1481,7 +1508,7 @@ function calculate(scroll) {
 
   lastReport = {
     pd:pd, sd:sd, holdMonths:holdMonths, pp:pp, sp:sp, bsd:bsd, absd:absd, absdRate:absdRate,
-    absdFullRate:absdFullRate, absdPaid:absdPaid, absdRefund:absdRefund, peakUpfrontCash:peakUpfrontCash,
+    absdFullRate:absdFullRate, absdPaid:absdPaid, absdRefund:absdRefund, peakUpfrontCash:peakUpfrontCash, spouseRemit:spouseRemit,
     remission:remission, agentBuyCost:agentBuyCost, legalBuy:legalBuy, totalEntryCost:totalEntryCost,
     totalInterest:totalInterest, totalPropTax:totalPropTax, totalMaint:totalMaint, isRental:isRental,
     totalRentalGross:totalRentalGross, totalRentalExp:totalRentalExp, ssdInfo:ssdInfo, ssd:ssd,
@@ -1638,7 +1665,7 @@ function buildReportText() {
   lines.push('UPFRONT (CASH)');
   lines.push('Down payment (equity): -' + fmt(r.equity));
   lines.push('BSD: -' + fmt(r.bsd));
-  lines.push('ABSD (' + r.absdFullRate + '%' + (r.remission ? ', paid upfront then reclaimed' : '') + '): ' + (r.absdPaid > 0 ? '-' + fmt(r.absdPaid) : '—'));
+  lines.push('ABSD (' + r.absdFullRate + '%' + (r.spouseRemit ? ', remitted — spouse relief' : (r.remission ? ', paid upfront then reclaimed' : '')) + '): ' + (r.absdPaid > 0 ? '-' + fmt(r.absdPaid) : '—'));
   if (r.remission) lines.push('ABSD remission refund (after selling first home): +' + fmt(r.absdRefund));
   lines.push('Buy-side agent commission: ' + (r.agentBuyCost > 0 ? '-' + fmt(r.agentBuyCost) : '—'));
   lines.push('Buy-side legal fees: ' + (r.legalBuy > 0 ? '-' + fmt(r.legalBuy) : '—'));
