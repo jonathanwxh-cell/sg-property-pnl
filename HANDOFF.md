@@ -11,27 +11,23 @@ A single, self-contained HTML calculator that estimates the **net profit/loss of
 residential property transaction** after stamp duties, mortgage, and costs, and compares it to
 STI / S&P 500 / T-bill benchmarks. No build step, no framework — one HTML file with inline CSS + vanilla JS.
 
-A recent working session (1) fixed several **correctness bugs in the tax/P&L logic**, (2) replaced a
-client-side Twelve Data API-key feature with a **hosted benchmark endpoint**, (3) modernized the
-**UI**, and (4) fixed the **save/email** feature. This document records all of it. Sections 3–6 contain
-**invariants you must not regress.**
+Working sessions have since (1) fixed **correctness bugs in the tax/P&L logic** (two QA passes),
+(2) replaced a client-side Twelve Data API-key feature with a **hosted benchmark endpoint**, (3) rebuilt
+the **UI as an editable "story"** with a live result + sensitivity table, and (4) fixed **save/email**.
+**§4 is the current, canonical statement of the tax/finance invariants you must not regress**; **§11–§15
+are the dated change history** behind them (read §4 as truth — if a §11–§15 note ever conflicts, §4 wins).
 
 ---
 
 ## 1. Canonical file (READ FIRST — easy to get wrong)
 
-This repo stores **dated snapshots** (`YYYY-MM-DD-sg-property-pnl-*.html`), one per past change.
-**The current, canonical file is:**
+**`index.html` is the single, canonical file** — the entire calculator (HTML + inline CSS + vanilla JS)
+lives in it. This repo does **not** keep dated snapshots; do not reintroduce that pattern. (The original
+`AngsumalinX/sg-property-pnl` repo kept `YYYY-MM-DD-*.html` snapshots — that history stays there.)
 
-```
-2026-06-26-sg-property-pnl-clarity-pass.html
-```
-
-All the fixes below live in that file. The other dated `.html` files are **historical** — do not edit them.
-
-**Recommended first task:** collapse this to a single `index.html` (copy the canonical file to
-`index.html`, move the dated ones into an `/archive` folder) so there is one obvious source of truth.
-The `README.md` is currently empty and should describe the project + point at the canonical file.
+A live, known-good build is deployed at
+**https://agent-deployed-applications-alyosha.zocomputer.io/sg-property-pnl** — compare against it after
+any change (same inputs ⇒ same numbers + layout).
 
 Everything is referenced below **by function / CSS-section name**, not line number, because line
 numbers drift — `grep` for the name.
@@ -81,23 +77,36 @@ fixed estimates. A config flag for this is a good small task (see §8).
 These were verified against IRAS/MAS/MOF (sources in §10). Bugs here are silent and expensive.
 
 ### 4.1 Seller's Stamp Duty — `getSsdInfo(pd, sd)`
-- **Regime is chosen by PURCHASE date**, and tiers are decided by **calendar anniversary** (dispose on
-  or before the Nth anniversary = "held ≤ N years"), NOT a 365.25-day count (avoids exact-anniversary /
-  leap-year off-by-one).
-- **Purchases on/after 4 Jul 2025:** 4-year holding — **≤1yr 16%, ≤2yr 12%, ≤3yr 8%, ≤4yr 4%, >4yr 0%.**
-- Purchases 11 Mar 2017 – 3 Jul 2025: 3-year — 12 / 8 / 4 / then 0.
-- Earlier regimes retained. SSD is charged on the **higher of sale price or market valuation** (see 4.5).
+- **Regime chosen by PURCHASE date**; tiers by **calendar anniversary**, NOT a 365.25-day count.
+- **The anniversary boundary is EXCLUSIVE:** `within(n)` is `sDate < anniv(n)`. Disposing **on** the Nth
+  anniversary counts as "held **more than** N years" (the lower/zero tier), per IRAS — e.g. bought
+  21 Mar 2023, sold on/after 21 Mar 2026 ⇒ **no SSD**. A tier's last chargeable day is the anniversary − 1
+  (returned as `boundary`, with `nextRate`, for the day-level cliff display). **Do NOT revert to `<=`.**
+- **On/after 4 Jul 2025:** 4-year holding — ≤1yr 16 / ≤2yr 12 / ≤3yr 8 / ≤4yr 4 / >4yr 0.
+- 11 Mar 2017 – 3 Jul 2025: 3-year — 12 / 8 / 4 / 0. Earlier regimes (Jan 2011, pre-2011) retained.
+- SSD is charged on the **higher of sale price or market valuation** (see 4.5).
 
 ### 4.2 Buyer's Stamp Duty — `getBsdRate(price, date)`
-- Residential top rate is **6% on the portion above $3M** — there is **no 7% band**. Bands (post 15 Feb 2023):
-  1% / 2% / 3% / 4% / 5% (1.5–3M) / **6% (>3M)**.
+Three regimes by purchase date:
+- **≥ 15 Feb 2023:** 1 / 2 / 3 / 4 / 5 (1.5–3M) / **6% (>3M)** — top **6%, no 7% band**.
+- **20 Feb 2018 – 14 Feb 2023:** 1 / 2 / 3 / **4% (>1M)**.
+- **Before 20 Feb 2018:** 1 / 2 / **3% top** (the 4% band started 20 Feb 2018).
+- Check: S$2M ⇒ S$54,600 (pre-2018) / S$64,600 (2018–2023) / S$69,600 (2023+).
 
-### 4.3 Additional Buyer's Stamp Duty — `getAbsdRate(bt, pc, date, remission, fta)`
-- Current (27 Apr 2023) rates: SC 0/20/30, PR 5/30/35, Foreigner 60 (flat), Entity 65 (flat).
-- **FTA nationals** (US nationals; nationals/PRs of Iceland, Liechtenstein, Norway, Switzerland) get
+### 4.3 Additional Buyer's Stamp Duty — `getAbsdRate(bt, pc, date, remission, fta, spouseRemitFirst)`
+- Rates by regime (SC / PR / FG / Entity; 1st-property rate is 0 for SC, 5 for PR):
+  - **≥ 27 Apr 2023:** SC 0/20/30, PR 5/30/35, FG 60 (flat), Entity 65 (flat).
+  - **16 Dec 2021 – 26 Apr 2023:** SC 0/17/25, PR 5/25/30, FG 30, Entity 35. *(Do not skip this regime.)*
+  - **6 Jul 2018 – 15 Dec 2021:** SC 0/12/15, PR 5/15/15, FG 20, Entity 25. Earlier regimes retained.
+- **FTA nationals** (US; nationals/PRs of Iceland, Liechtenstein, Norway, Switzerland) get
   **Singapore-Citizen treatment** — the `fta` flag maps a Foreigner to SC rates.
-- **Remission** (rate → 0) only for a **married couple with ≥1 SC/PR buying their 2nd property** while
-  selling the first within 6 months. Gated on effective buyer type.
+- **Replacement remission** (`remission`, "Section B"): a **married couple with ≥1 SC/PR buying their 2nd
+  property** while selling the first within 6 months → rate 0. Modelled **pay-now / reclaim-later** — ABSD
+  is paid upfront (counts in peak/bridging cash) and shown refunded; Net P&L excludes it.
+- **Spouse remission** (`spouseRemitFirst`, "Section A"): a **married couple with ≥1 SC spouse buying
+  their 1st property** jointly, neither owning any other residential property → rate 0, **whatever the
+  other spouse's nationality** (SC+foreigner qualifies). **Full remission at stamping** — no ABSD paid, no
+  bridging, no refund line. Model the couple as the higher-rate spouse (PR/FG). See §15.
 
 ### 4.4 Net P&L — `computePnl` (the flagship bug that was fixed)
 - `netPnl = exitProceeds − totalEntryCost − totalInterest − totalPropTax − totalMaint + totalRentalNet`.
@@ -116,13 +125,24 @@ These were verified against IRAS/MAS/MOF (sources in §10). Bugs here are silent
 - The optional valuation inputs are `#purchaseValuation` / `#saleValuation` (blank ⇒ use the price).
 
 ### 4.6 LTV cap by property count — `ltvCap()` / `updateLtvCap()`
-- MAS limits: **75% (1st loan), 45% (2nd), 35% (3rd+)**; the UI caps the slider/input by the buyer's
-  property-count selection and clamps the value. (Tenure >30yr or age >65 lowers these further to
-  55/25/15 — noted in the hint, not modelled, since age isn't collected.)
+- MAS limits by property count: **75 / 45 / 35** (1st / 2nd / 3rd+); the UI caps the slider/input and
+  clamps the value.
+- **ENFORCED for long tenure:** loan tenure **> 30 years** drops the cap to **55 / 25 / 15** (editing
+  `#loanTenure` re-runs `updateLtvCap()` to re-clamp). Age > 65 at maturity would also reduce it but is
+  **not** modelled (age isn't collected).
 
 ### 4.7 Rental yields — `computePnl`
-- **Gross/net yields use full contractual annual rent (100% occupancy)** — the market convention.
-  Occupancy affects the P&L cash flow only, not the headline yield. Occupancy is clamped to ≤100%.
+- **Gross yield** uses full contractual annual rent (100% occupancy) — the market convention.
+- **Net yield is occupancy-adjusted** (occupancy-scaled effective rent) so it tracks the P&L cash flow.
+  Occupancy is clamped to **0–100%** and 0% is honoured (do not treat a 0 as "unset").
+
+### 4.8 Input safety & display (do not regress)
+- Invalid (`validity.badInput`) and negative numeric fields surface a warning in `#inputWarn` rather than
+  silently defaulting/zeroing; a sub-1-year loan tenure is clamped to 1 year; money chips are positive-only.
+- When required inputs are missing/invalid, `calculate()` hides `#results`, **nulls `lastReport`, and
+  destroys the benchmark chart** — nothing stale can be exported (copy/email guard null) or left hidden.
+- A break-even ≤ 0 shows **"S$0 or below"** / "profitable at any price" (never a misleading positive).
+- Scenario sliders persist across base-case edits; there is no "stale base" warning (results are live).
 
 > ⚠️ SG stamp-duty rules change by policy. Re-verify §4 against IRAS/MAS (§10) periodically; the rates
 > and dates are hardcoded intentionally (there is no real-time rates API).
@@ -169,11 +189,16 @@ match the repo's existing author identity (`git log` shows `Karen Xing`).
 
 ## 8. Open items / suggested next tasks
 
-1. **Consolidate to `index.html`** and archive the dated snapshots (§1); write a real `README.md`.
-2. **Decide benchmark-endpoint ownership** (§3): add a `BENCHMARK_API` config flag or self-host; the app
-   already falls back to fixed estimates, so this is non-blocking.
-3. (Optional) surface `#purchaseValuation` / FTA / LTV notes more prominently if users miss them.
-4. Periodic: re-verify §4 tax rates against IRAS/MAS (they change by Budget/cooling measures).
+*(The earlier "consolidate to `index.html` + write a README" task is done — the repo is a single
+`index.html` with `README.md` / `AGENTS.md` / `CLAUDE.md` / this file.)*
+
+1. **Decide benchmark-endpoint ownership** (§3): point `BENCHMARK_API` at your own host or self-host it;
+   the app already falls back to fixed estimates, so this is non-blocking.
+2. **Rates are hardcoded** (no live rates API) — after any SG Budget / cooling-measure change, re-verify
+   the §4 rates & dates against IRAS/MAS (§10) and update `getSsdInfo` / `getBsdRate` / `getAbsdRate`.
+3. (Optional) remission / FTA eligibility is **asserted via checkboxes, not enforced** — a future version
+   could collect the underlying facts (spouse nationality, other-property ownership) to reduce misuse.
+4. (Optional, bolder) the scenario **rate × sale-price heatmap** sketched at the end of §13.
 
 ---
 
@@ -181,7 +206,8 @@ match the repo's existing author identity (`git log` shows `Karen Xing`).
 
 - **Breakdown reconciles:** after `calculate()`, sum the amount column of `#breakdownTable` (excluding the
   subtotal `tr.total` and grand `tr.grand` rows) — it must equal the Net P&L shown in `tr.grand`. Paste
-  this in the browser console after clicking Calculate (expect `reconciles: true`, no errors):
+  this in the browser console once results are showing — they update live as you edit; there is no
+  Calculate button (expect `reconciles: true`, no errors):
   ```js
   (function(){var r=document.querySelectorAll('#breakdownTable tbody tr'),s=0,g=null;
   function p(t){t=t.trim();if(t==='—'||t==='')return 0;var k=t[0]==='-'?-1:1;return k*Number(t.replace(/[^0-9.]/g,''));}
@@ -189,7 +215,9 @@ match the repo's existing author identity (`git log` shows `Karen Xing`).
   if(tr.classList.contains('grand')){g=p(d[1].textContent);return;}if(tr.classList.contains('total'))return;s+=p(d[1].textContent);});
   console.log({sum:Math.round(s),grand:g,reconciles:Math.abs(s-g)<2});})();
   ```
-- **SSD boundaries** (purchase on/after 2025-07-04): 1yr→16, 2yr→12, 3yr→8, 4yr→4, 4yr+1day→0.
+- **SSD boundaries** (purchase on/after 2025-07-04): a sale the **day before** the Nth anniversary is in
+  tier N; **on/after** the anniversary drops a tier. e.g. bought 2 Jul 2026: sell 1 Jul 2030 → 4%, sell
+  **2 Jul 2030 (4th anniversary) → 0%** (getSsdInfo uses strict `<`; see §4.1).
 - **BSD** at $6.5M = S$329,600 (6% top, not 7%). At $1.5M = S$44,600.
 - **LTV**: switching buyer to 2nd property caps LTV at 45%; 3rd+ at 35%.
 - **FTA**: `getAbsdRate('FG','2',date,false,true)` returns 20 (SC-2nd), not 60.

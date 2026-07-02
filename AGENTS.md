@@ -35,21 +35,26 @@ change or move, so treat it as a convenience reference, not a permanent contract
    block) and keep every animation behind `@media (prefers-reduced-motion: reduce)`.
 
 ## Do NOT regress (details + rationale in HANDOFF.md §4–§6)
-1. **SSD** (`getSsdInfo`): 4 Jul 2025 regime = 16/12/8/4 over **4 years**; regime chosen by purchase
-   date; tiers decided by **calendar anniversary** (not a day count).
-2. **BSD** (`getBsdRate`): residential tops at **6% above $3M** — no 7% band.
+1. **SSD** (`getSsdInfo`): 4 Jul 2025 regime = 16/12/8/4 over **4 years**; regime by purchase date; tiers
+   by **calendar anniversary** with an **exclusive boundary** — a sale ON the Nth anniversary counts as
+   "more than N years" (strict `<`; e.g. sold on the 4-yr anniversary ⇒ 0%). Do NOT revert to `<=`.
+2. **BSD** (`getBsdRate`): three regimes — before 20 Feb 2018 **3% top**; 20 Feb 2018–14 Feb 2023 **4%**
+   top; ≥15 Feb 2023 **6% above $3M** (no 7% band). Check: S$2M ⇒ 54,600 / 64,600 / 69,600.
 3. **Net P&L** (`computePnl`): financing cost is **interest only** — do NOT add `loan`/subtract
    `outstandingLoan` (that double-counts principal and overstated profit ~2×). The breakdown table +
    email report must **sum exactly to Net P&L** (cash basis).
-4. **LTV** capped 75/45/35 by property count; **duties on max(price, valuation)**; **gross yield at full
-   occupancy but net yield occupancy-adjusted** (net moves with occupancy like the P&L); **ABSD**
-   FTA-national → Singapore-citizen treatment, and ABSD covers **every regime incl. 16 Dec 2021**
-   (SC 2nd 17 / 3rd 25; PR 2nd 25 / 3rd 30; FG 30; Entity 35).
-5. **ABSD remission** (SC/PR couple, 2nd home) is modelled **pay-now / refund-later**: ABSD is charged
-   upfront (peak/bridging cash) and shown as refunded, so Net P&L excludes it but "peak upfront cash"
-   includes it. **Break-even** accounts for SSD being fixed on a higher sale valuation. **IRR floors
-   at -100%** when a loss wipes out equity (avoids NaN). Negative rates / sub-1-year tenure are clamped
-   with a visible `#inputWarn` note. SSD shows the exact day-level cliff date.
+4. **LTV** capped 75/45/35 by property count, **reduced to 55/25/15 when loan tenure > 30 years**;
+   **duties on max(price, valuation)**; **gross yield at full occupancy but net yield occupancy-adjusted**
+   (0% occupancy honoured); **ABSD** FTA-national → Singapore-citizen treatment, and ABSD covers **every
+   regime incl. 16 Dec 2021** (SC 2nd 17 / 3rd 25; PR 2nd 25 / 3rd 30; FG 30; Entity 35).
+5. **ABSD remissions:** *(Section B)* an SC/PR couple buying a **2nd** home is **pay-now / refund-later** —
+   ABSD paid upfront (peak/bridging cash), shown refunded, excluded from Net P&L. *(Section A)* a couple
+   with **≥1 SC spouse** buying their **1st** home together (neither owns other property) gets a **full
+   remission at stamping → 0% ABSD, no bridging** (SC+foreigner qualifies; `#absdSpouseRemit`).
+6. **Robustness:** **break-even** accounts for SSD fixed on a higher sale valuation (and shows "S$0 or
+   below" when non-positive); **IRR floors at -100%** on equity wipe-out (avoids a NaN that crashed the
+   benchmark render); negative/invalid inputs and sub-1-year tenure surface an `#inputWarn` note; invalid
+   input clears the results, chart and `lastReport` so nothing stale is shown or exported.
 
 ## Run & verify locally (no build, no test suite)
 - Serve the folder and open `index.html`:
