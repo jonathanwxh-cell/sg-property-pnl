@@ -47,14 +47,18 @@ change or move, so treat it as a convenience reference, not a permanent contract
    **duties on max(price, valuation)**; **gross yield at full occupancy but net yield occupancy-adjusted**
    (0% occupancy honoured); **ABSD** FTA-national → Singapore-citizen treatment, and ABSD covers **every
    regime incl. 16 Dec 2021** (SC 2nd 17 / 3rd 25; PR 2nd 25 / 3rd 30; FG 30; Entity 35).
-5. **ABSD remissions:** *(Section B)* an SC/PR couple buying a **2nd** home is **pay-now / refund-later** —
-   ABSD paid upfront (peak/bridging cash), shown refunded, excluded from Net P&L. *(Section A)* a couple
-   with **≥1 SC spouse** buying their **1st** home together (neither owns other property) gets a **full
-   remission at stamping → 0% ABSD, no bridging** (SC+foreigner qualifies; `#absdSpouseRemit`).
-6. **Robustness:** **break-even** accounts for SSD fixed on a higher sale valuation (and shows "S$0 or
-   below" when non-positive); **IRR floors at -100%** on equity wipe-out (avoids a NaN that crashed the
-   benchmark render); negative/invalid inputs and sub-1-year tenure surface an `#inputWarn` note; invalid
-   input clears the results, chart and `lastReport` so nothing stale is shown or exported.
+5. **ABSD remissions** — both need only a **Singapore-Citizen spouse** (SC+foreigner qualifies; model the
+   couple as the higher-rate profile): *(Section A, `#absdSpouseRemit`)* **1st** home together, neither owns
+   other property → **full remission at stamping, 0% ABSD, no bridging**. *(Section B, `#absdRemission`)*
+   **2nd** home, sell the first within 6 months → **pay-now / refund-later** (paid upfront as bridging,
+   shown refunded, excluded from Net P&L). Section B shows for any non-entity 2nd-property buyer.
+6. **Robustness:** **break-even** accounts for SSD fixed on a higher sale valuation (shows "S$0 or below"
+   when non-positive); **IRR floors at -100%** on equity wipe-out; **loan tenure capped ≤ 35yr and the
+   amortisation loop hard-capped** (an absurd/`1e308` tenure can't hang the page); `num()` clamps to
+   [0, 1e12]; **`validity.badInput` and negative amounts BLOCK** the calc (results hidden, `lastReport`
+   nulled → no stale export), negatives shown not silently flipped; **S$0 sale is valid**; an **underwater
+   sale** shows the cash top-up (`#underwaterNote`). A11y: `role="heading"` section titles + a narrow
+   `#srSummary` live region (no broad `aria-live`).
 
 ## Run & verify locally (no build, no test suite)
 - Serve the folder and open `index.html`:

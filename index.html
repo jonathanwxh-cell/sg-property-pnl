@@ -512,6 +512,9 @@
   .sensitivity-table .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .sensitivity-table td.pos { color: var(--color-text-success); }
   .sensitivity-table td.neg { color: var(--color-text-danger); }
+
+  /* Screen-reader-only utility (visually hidden, still announced). */
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 </style>
 </head>
 <body>
@@ -571,7 +574,7 @@
 
 <!-- ── Transaction dates ── -->
 <div class="section">
-  <div class="section-title">Transaction dates</div>
+  <div class="section-title" role="heading" aria-level="2">Transaction dates</div>
   <div class="grid2">
     <div class="field">
       <label for="purchaseDate">Purchase date (OTP exercise / S&amp;P date)</label>
@@ -589,7 +592,7 @@
 
 <!-- ── Purchase details ── -->
 <div class="section">
-  <div class="section-title">Purchase details</div>
+  <div class="section-title" role="heading" aria-level="2">Purchase details</div>
   <div class="grid2">
     <div class="field">
       <label for="purchaseBasis">Price basis</label>
@@ -661,7 +664,7 @@
 
 <!-- ── Sale details ── -->
 <div class="section">
-  <div class="section-title">Sale details</div>
+  <div class="section-title" role="heading" aria-level="2">Sale details</div>
   <div class="grid2">
     <div class="field">
       <label for="saleBasis">Price basis</label>
@@ -705,7 +708,7 @@
 
 <!-- ── Property usage & other costs ── -->
 <div class="section">
-  <div class="section-title">Property usage &amp; other costs</div>
+  <div class="section-title" role="heading" aria-level="2">Property usage &amp; other costs</div>
   <div class="grid2">
     <!-- Purpose (live-in vs rent) is chosen in the story above (#usagePurpose) -->
     <div class="field">
@@ -764,23 +767,27 @@
 </div>
 
 <!-- ════════════════ RESULTS ════════════════ -->
-<div class="results" id="results" aria-live="polite">
+<div class="results" id="results">
   <div class="divider"></div>
   <span class="estimate-tag">ⓘ Estimate only — not financial advice</span>
+  <!-- Screen-reader live region: a concise one-line summary is announced on recalc, instead of the
+       whole results tree re-reading on every keystroke (the old broad aria-live on #results). -->
+  <div id="srSummary" class="sr-only" role="status" aria-live="polite"></div>
 
   <!-- Summary metrics -->
   <div class="section">
-    <div class="section-title">P&amp;L summary</div>
+    <div class="section-title" role="heading" aria-level="2">P&amp;L summary</div>
     <div id="inputWarn" class="field-error" style="display:none;margin-bottom:.75rem"></div>
     <div class="metric-grid" id="metricGrid"></div>
     <p class="hint" style="margin-bottom:.75rem">ⓘ "Annualised return" is a simplified estimate (CAGR on equity) — it treats the whole holding period as one lump sum rather than your actual monthly mortgage payments, so it is not the same as a bank-quoted IRR/XIRR. It is also a leveraged return (on your equity), so it is not directly comparable to the unleveraged benchmark returns below.</p>
     <div id="breakeven"></div>
+    <div id="underwaterNote" class="field-error" style="display:none;margin-top:.75rem"></div>
   </div>
 
   <!-- Collapsible breakdown -->
   <div class="section">
     <div class="collapsible-header" onclick="toggleBreakdown()">
-      <div class="section-title">Cost &amp; proceeds breakdown</div>
+      <div class="section-title" role="heading" aria-level="2">Cost &amp; proceeds breakdown</div>
       <i class="ti ti-chevron-down chevron" id="breakdownChevron" aria-hidden="true"></i>
     </div>
     <div id="breakdownBody" style="display:none;margin-top:1rem">
@@ -790,7 +797,7 @@
 
   <!-- Scenario analysis -->
   <div class="section">
-    <div class="section-title">Scenario analysis</div>
+    <div class="section-title" role="heading" aria-level="2">Scenario analysis</div>
     <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem">
       Try "what if" questions — what if interest rates rise, or you sell for less than planned — to see how your profit changes. Each slider works independently of the others.<br>
       These sliders explore changes from your current inputs; the base case updates automatically as you edit the form.
@@ -836,7 +843,7 @@
 
     <!-- Sensitivity: pre-baked downside/upside cases at a glance (base-driven, updates as you edit the deal) -->
     <div class="sensitivity">
-      <div class="section-title" style="font-size:14px;margin-top:1.75rem">Sensitivity — how the deal holds up</div>
+      <div class="section-title" role="heading" aria-level="2" style="font-size:14px;margin-top:1.75rem">Sensitivity — how the deal holds up</div>
       <p style="font-size:13px;color:var(--color-text-secondary);margin:.25rem 0 .75rem">Common shocks applied one at a time to your current inputs, so you can see the downside at a glance without dragging the sliders.</p>
       <table class="sensitivity-table" id="sensitivityTable"></table>
     </div>
@@ -844,7 +851,7 @@
 
   <!-- Benchmark comparison -->
   <div class="section">
-    <div class="section-title">Benchmark comparison</div>
+    <div class="section-title" role="heading" aria-level="2">Benchmark comparison</div>
     <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.75rem">
       If the same equity (down payment + upfront costs) had been invested elsewhere over the same holding period
     </p>
@@ -860,7 +867,7 @@
 
   <!-- Save / email report -->
   <div class="section">
-    <div class="section-title">Save or send this report</div>
+    <div class="section-title" role="heading" aria-level="2">Save or send this report</div>
     <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:.9rem">A plain-text copy of the P&amp;L summary, the full cost breakdown, and the benchmark comparison. <strong>Copy it</strong> to paste anywhere, or <strong>open it as a pre-filled email</strong> — nothing is sent from this page or stored anywhere.</p>
     <div class="field" style="margin-bottom:.9rem">
       <label for="emailTo">Email address <span style="color:var(--color-text-tertiary);font-weight:400">(only needed for the email option)</span></label>
@@ -941,7 +948,7 @@ function getAbsdRate(bt, pc, date, remission, fta, spouseRemitFirst) {
   /* Under Free Trade Agreements, nationals of the USA and nationals/PRs of Iceland, Liechtenstein,
      Norway or Switzerland get the same stamp-duty treatment as a Singapore Citizen. */
   if (fta && bt === 'FG') bt = 'SC';
-  if (remission && (bt === 'SC' || bt === 'PR') && p === 2) return 0;
+  if (remission && p === 2) return 0;  /* Section B: married couple with a SC spouse buying their 2nd home (checkbox asserts eligibility; works whatever the higher-rate profile) */
   /* Columns by purchase-date regime:
      [ Apr 2023+ , 16 Dec 2021–26 Apr 2023 , 6 Jul 2018–15 Dec 2021 , 12 Jan 2013–5 Jul 2018 , 8 Dec 2011–11 Jan 2013 ] */
   var tbl = {
@@ -985,7 +992,9 @@ function getSsdInfo(pd, sd) {
    Mortgage amortisation
 ───────────────────────────────────────────── */
 function buildAmort(principal, annRate, tenureYrs, fixedPeriod, floatRate) {
-  var totalM = tenureYrs * 12, fixedM = (fixedPeriod || 0) * 12;
+  /* Hard cap the schedule length (50yr) so an absurd/pasted tenure (e.g. 1e308) can't make totalM
+     Infinity and spin this loop forever, hanging the page. calculate() also clamps tenure to 35. */
+  var totalM = Math.min(Math.max(0, Math.round(tenureYrs * 12)), 600), fixedM = (fixedPeriod || 0) * 12;
   var mPmt = function(r, p, n) { return r === 0 ? p/n : p*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1); };
   var bal = principal, rows = [], cumInt = 0, cumPrin = 0;
   for (var m = 1; m <= totalM; m++) {
@@ -1037,7 +1046,7 @@ function updateAbsdHint() {
   /* ABSD remission applies to SC/PR (incl. FTA-treated) buying their 2nd property while disposing of
      the first — gate on the effective type so it never shows a misleading "remitted" label for a
      buyer whose rate was never actually reduced */
-  remRow.style.display = ((effBt === 'SC' || effBt === 'PR') && pc === '2') ? 'flex' : 'none';
+  remRow.style.display = (pc === '2' && bt !== 'EN') ? 'flex' : 'none';
   if (remRow.style.display === 'none') {
     remission = false;
     /* Force-uncheck so the box doesn't silently reappear pre-checked if the row becomes visible again later */
@@ -1339,7 +1348,9 @@ function calculate(scroll) {
   /* NaN-safe parse-with-default: unlike `parseFloat(x) || d`, this does not treat a genuine 0 as missing */
   var num = function(id, def) {
     var v = parseFloat(String(document.getElementById(id).value).replace(/,/g, ''));
-    return Math.max(0, isNaN(v) ? def : v);
+    /* Clamp to [0, 1e12]: floors negatives at 0 and caps absurd values (e.g. a pasted 1e308) so they
+       can't overflow to Infinity and hang or garble the math downstream. */
+    return Math.min(1e12, Math.max(0, isNaN(v) ? def : v));
   };
   var bt            = document.getElementById('buyerType').value;
   var pc            = document.getElementById('propCount').value;
@@ -1371,7 +1382,7 @@ function calculate(scroll) {
   var effBt       = fta ? 'SC' : bt;
   var purchaseVal = num('purchaseValuation', 0);
   var saleVal     = num('saleValuation', 0);
-  var remEligible = (effBt === 'SC' || effBt === 'PR') && pc === '2';
+  var remEligible = pc === '2' && bt !== 'EN';   // Section B replacement remission: any couple with a SC spouse (asserted by the checkbox)
   var remission   = remEligible && document.getElementById('absdRemission').checked;
   var spouseRemitFirst = pc === '1' && bt !== 'EN' && document.getElementById('absdSpouseRemit').checked;
 
@@ -1384,6 +1395,7 @@ function calculate(scroll) {
   if (pp > 0 && ltvPct > 0) {
     var rawTenure = rawNum('loanTenure');
     if (!isNaN(rawTenure) && rawTenure < 1) { tenure = 1; inputWarnings.push('a mortgage must run at least 1 year — loan tenure treated as 1 year (a 0-year tenure would understate interest to zero)'); }
+    else if (tenure > 35) { tenure = 35; inputWarnings.push('loan tenure capped at 35 years (MAS maximum for residential loans)'); }
   }
   /* Flag fields the browser can't parse (e.g. "1e", "--") or that hold a negative — otherwise they
      silently fall back to a default or 0 and drive a misleading result rather than being questioned. */
@@ -1396,14 +1408,27 @@ function calculate(scroll) {
   if (_badField) inputWarnings.push('a number field contains characters that aren’t a valid number — that field is being ignored');
   if (_negField) inputWarnings.push('negative amounts aren’t valid here and are treated as 0');
 
-  if (!pd || !sd || !pp || !sp || new Date(sd) <= new Date(pd)) {
-    /* Inputs not yet complete/valid — hide results, show the empty state. No alert: this runs live on
-       every keystroke. (Date-order errors still surface inline via updateAbsdHint's #dateOrderError.)
-       Clear stale state so nothing old lingers in the hidden results, chart, or the copy/email export. */
+  /* A sale price of 0 is a legitimate scenario (total loss / gift), so require the field to be *provided*
+     rather than truthy; the purchase price must still be > 0. An invalid (badInput) field blocks the whole
+     calc rather than silently computing with a defaulted value. */
+  var spProvided = String(document.getElementById('salePrice').value).replace(/[^0-9.]/g, '') !== '';
+  if (_badField || !pd || !sd || !(pp > 0) || !spProvided || new Date(sd) <= new Date(pd)) {
+    /* Inputs not complete/valid — hide results, show the empty state, and CLEAR stale state so nothing
+       old lingers in the hidden results, chart or the copy/email export. Live on every keystroke, so no
+       alert. (Date-order errors still surface inline via #dateOrderError.) */
     document.getElementById('results').style.display = 'none';
-    var _esHide = document.getElementById('emptyState'); if (_esHide) _esHide.style.display = 'block';
+    var _es = document.getElementById('emptyState');
+    if (_es) {
+      _es.style.display = 'block';
+      var _sub = _es.querySelector('.es-sub');
+      if (_sub) _sub.textContent = _badField
+        ? 'A number field contains characters that aren’t a valid number — clear it to see your result.'
+        : (_negField ? 'An amount is negative — prices and fees must be zero or positive.'
+                     : 'Enter a purchase price and an expected sale price — results update automatically as you type.');
+    }
     lastReport = null;
     if (benchmarkChartInst) { benchmarkChartInst.destroy(); benchmarkChartInst = null; }
+    ['metricGrid','breakdownTable','breakeven','bmarkCards','laymanBox','sensitivityTable','downsideBreakeven','liveDataStatus'].forEach(function(id){ var e = document.getElementById(id); if (e) e.innerHTML = ''; });
     return;
   }
 
@@ -1423,7 +1448,7 @@ function calculate(scroll) {
   var totalInterest = out.totalInterest, outstandingLoan = out.outstandingLoan, loan = out.loan, equity = out.equity;
   var totalPropTax = out.totalPropTax, totalMaint = out.totalMaint;
   var totalRentalGross = out.totalRentalGross, totalRentalExp = out.totalRentalExp;
-  var totalEntryCost = out.totalEntryCost, netPnl = out.netPnl;
+  var totalEntryCost = out.totalEntryCost, netPnl = out.netPnl, exitProceeds = out.exitProceeds;
   var totalCashIn  = out.totalCashIn, irr = out.irr, breakEven = out.breakEven;
   var grossYield   = out.grossYield, netYield = out.netYield;
 
@@ -1450,22 +1475,39 @@ function calculate(scroll) {
   }
   document.getElementById('metricGrid').innerHTML = metrics;
 
+  var _sr = document.getElementById('srSummary');
+  if (_sr) _sr.textContent = 'Net P&L ' + fmtSgn(netPnl) + ', annualised return ' + irr.toFixed(1) + '% over ' + holdMonths + ' months.';
+
   var iw = document.getElementById('inputWarn');
   if (iw) {
     if (inputWarnings.length) { iw.style.display = 'block'; iw.innerHTML = '⚠ ' + inputWarnings.join('; ') + '.'; }
     else { iw.style.display = 'none'; iw.innerHTML = ''; }
   }
 
-  /* ── Break-even bar ── */
+  /* ── Break-even bar ── (status sits ABOVE the bar, not overlaid, so it never overlaps the fill on
+     narrow/mobile screens where the label used to collide with the coloured fill) */
   var beRatio  = breakEven > 0 ? sp / breakEven : 1;
   var barColor = sp >= breakEven ? '#1D9E75' : '#D85A30';
   var beBarText = breakEven > 0 ? fmt(breakEven) : 'S$0 or below';
   document.getElementById('breakeven').innerHTML =
-    '<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:6px">Sale price vs break-even: <strong>' + fmt(sp) + '</strong> vs <strong>' + beBarText + '</strong></div>'
+    '<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:6px">Sale price vs break-even: <strong>' + fmt(sp) + '</strong> vs <strong>' + beBarText + '</strong> — <strong style="color:' + barColor + '">' + (sp>=breakEven ? 'above break-even ✓' : 'below break-even') + '</strong></div>'
     + '<div class="breakeven-bar">'
     +   '<div class="breakeven-fill" style="width:' + Math.min(Math.max(beRatio,0)*67,100) + '%;background:' + barColor + '"></div>'
-    +   '<span class="breakeven-label" style="color:' + barColor + '">' + (sp>=breakEven ? 'Above break-even ✓' : 'Below break-even') + '</span>'
     + '</div>';
+
+  /* ── Underwater / cash top-up warning ── */
+  var uw = document.getElementById('underwaterNote');
+  if (uw) {
+    var shortfall = outstandingLoan - exitProceeds;   // loan still owed vs sale proceeds after selling costs
+    if (outstandingLoan > 0 && shortfall > 0) {
+      uw.style.display = 'block';
+      uw.innerHTML = '⚠ Underwater sale: your proceeds after selling costs (' + fmt(exitProceeds)
+        + ') don’t cover the outstanding loan (' + fmt(outstandingLoan) + ') — you’d need to <strong>top up '
+        + fmt(shortfall) + ' in cash</strong> at completion to discharge the mortgage.';
+    } else {
+      uw.style.display = 'none'; uw.innerHTML = '';
+    }
+  }
 
   /* ── Breakdown table ── */
   var principalPaid = Math.max(0, loan - outstandingLoan);
@@ -1535,15 +1577,14 @@ var scenReady = false;
 function initScenarioPanel(baseOut) {
   var slider = document.getElementById('scenLtv');
   slider.max = ltvCap();
+  /* LTV is an absolute value, so re-sync the scenario LTV to the current base LTV on every recalc — this
+     keeps it in step when the main LTV changes. The rate & sale-price sliders are relative deltas
+     (0 = base) and persist across base edits, so they are only seeded to 0 once. */
+  slider.value = lastInputs.ltvPct;
   if (!scenReady) {
-    /* Seed the sliders to the base case once; after that keep the user's positions across edits so a
-       scenario isn't wiped every time the deal is tweaked. */
-    slider.value = lastInputs.ltvPct;
     document.getElementById('scenRateDelta').value = 0;
     document.getElementById('scenPsfDelta').value  = 0;
     scenReady = true;
-  } else if ((parseFloat(slider.value) || 0) > ltvCap()) {
-    slider.value = ltvCap();   // keep within a newly-lowered cap (e.g. after switching to a 2nd property)
   }
   updateScenario();
   renderSensitivity();
@@ -1923,11 +1964,13 @@ function buildLayman(propIrr, netPnl, equity, holdYears, benchmarks) {
 ───────────────────────────────────────────── */
 /* Format a money field in place with thousands separators, preserving the caret position. */
 function formatMoney(el) {
-  var raw = String(el.value).replace(/[^0-9]/g, '');
-  var caret = el.selectionStart == null ? String(el.value).length : el.selectionStart;
-  var digitsBefore = String(el.value).slice(0, caret).replace(/[^0-9]/g, '').length;
-  if (!raw) { el.value = ''; return; }
-  var formatted = Number(raw).toLocaleString('en-US');
+  var s = String(el.value);
+  var neg = s.trim().charAt(0) === '-';   // keep a leading minus VISIBLE so a negative isn't silently flipped positive
+  var raw = s.replace(/[^0-9]/g, '');
+  var caret = el.selectionStart == null ? s.length : el.selectionStart;
+  var digitsBefore = s.slice(0, caret).replace(/[^0-9]/g, '').length;
+  if (!raw) { el.value = neg ? '-' : ''; return; }
+  var formatted = (neg ? '-' : '') + Number(raw).toLocaleString('en-US');
   el.value = formatted;
   var i = 0, count = 0;
   for (; i < formatted.length && count < digitsBefore; i++) {

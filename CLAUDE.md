@@ -13,10 +13,13 @@ class names** (the JS depends on them). Do **not** regress the Singapore tax/fin
 - **Net P&L = interest only** — no principal add-back — so the breakdown table sums exactly to the total
 - LTV **75/45/35** by property count (**55/25/15 when tenure > 30 yrs**); duties on **max(price, valuation)**;
   **gross** yield at full occupancy but **net** yield occupancy-adjusted; ABSD **FTA-national → Singapore-citizen**
-  and **all regimes incl. 16 Dec 2021**; ABSD **replacement remission** (2nd home) is pay-now/refund-later and
-  the **spouse remission** (1st home, ≥1 SC spouse) is a full 0% remission (SC+foreigner qualifies); break-even
-  handles valuation-based SSD & shows "S$0 or below" when non-positive; IRR floors at **-100%** on equity wipe-out
-- Full change history: **HANDOFF.md §11–§15** (§4 is the canonical invariants)
+  and **all regimes incl. 16 Dec 2021**; both ABSD married-couple remissions need only **≥1 SC spouse**
+  (SC+foreigner qualifies) — **replacement** (2nd home) pay-now/refund-later, **spouse** (1st home) full 0%;
+  break-even handles valuation-based SSD & shows "S$0 or below"; IRR floors at **-100%** on wipe-out
+- **Robustness:** `num()` clamps [0,1e12] + tenure ≤35yr + amortisation loop capped (no `1e308` hang);
+  invalid (`badInput`) / negative inputs **block** calc+export (negatives shown, not flipped); **S$0 sale valid**;
+  underwater sale shows a cash top-up; a11y = `role="heading"` titles + narrow `#srSummary` live region
+- Full change history: **HANDOFF.md §11–§16** (§4 is the canonical invariants)
 
 Verify with the browser-console reconciliation check in AGENTS.md ("Run & verify locally") **before and
 after** any change. There is no test suite. Benchmarks come from an external endpoint with an automatic

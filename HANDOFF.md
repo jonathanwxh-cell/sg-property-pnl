@@ -100,9 +100,11 @@ Three regimes by purchase date:
   - **6 Jul 2018 – 15 Dec 2021:** SC 0/12/15, PR 5/15/15, FG 20, Entity 25. Earlier regimes retained.
 - **FTA nationals** (US; nationals/PRs of Iceland, Liechtenstein, Norway, Switzerland) get
   **Singapore-Citizen treatment** — the `fta` flag maps a Foreigner to SC rates.
-- **Replacement remission** (`remission`, "Section B"): a **married couple with ≥1 SC/PR buying their 2nd
-  property** while selling the first within 6 months → rate 0. Modelled **pay-now / reclaim-later** — ABSD
-  is paid upfront (counts in peak/bridging cash) and shown refunded; Net P&L excludes it.
+- **Replacement remission** (`remission`, "Section B"): a **married couple with a Singapore-Citizen spouse
+  buying their 2nd property** while selling the first within 6 months → rate 0. Qualifies **whatever the
+  higher-rate profile** (SC+foreigner included — model the couple as the higher-rate spouse, e.g. FG); the
+  checkbox asserts the SC spouse and shows for any non-entity 2nd-property buyer. Modelled **pay-now /
+  reclaim-later** — ABSD paid upfront (counts in peak/bridging cash), shown refunded; Net P&L excludes it.
 - **Spouse remission** (`spouseRemitFirst`, "Section A"): a **married couple with ≥1 SC spouse buying
   their 1st property** jointly, neither owning any other residential property → rate 0, **whatever the
   other spouse's nationality** (SC+foreigner qualifies). **Full remission at stamping** — no ABSD paid, no
@@ -130,6 +132,8 @@ Three regimes by purchase date:
 - **ENFORCED for long tenure:** loan tenure **> 30 years** drops the cap to **55 / 25 / 15** (editing
   `#loanTenure` re-runs `updateLtvCap()` to re-clamp). Age > 65 at maturity would also reduce it but is
   **not** modelled (age isn't collected).
+- Loan tenure is clamped to **≤ 35 years** (MAS max) and `buildAmort` hard-caps the schedule at 600 months,
+  so an absurd/pasted tenure (e.g. `1e308`) can't spin an infinite amortisation loop and hang the page.
 
 ### 4.7 Rental yields — `computePnl`
 - **Gross yield** uses full contractual annual rent (100% occupancy) — the market convention.
@@ -137,12 +141,23 @@ Three regimes by purchase date:
   Occupancy is clamped to **0–100%** and 0% is honoured (do not treat a 0 as "unset").
 
 ### 4.8 Input safety & display (do not regress)
-- Invalid (`validity.badInput`) and negative numeric fields surface a warning in `#inputWarn` rather than
-  silently defaulting/zeroing; a sub-1-year loan tenure is clamped to 1 year; money chips are positive-only.
-- When required inputs are missing/invalid, `calculate()` hides `#results`, **nulls `lastReport`, and
-  destroys the benchmark chart** — nothing stale can be exported (copy/email guard null) or left hidden.
+- `num()` clamps every numeric field to **[0, 1e12]** (floors negatives; caps absurd/`1e308` values so they
+  can't overflow to Infinity). A field the browser can't parse (`validity.badInput`) **blocks the calc
+  entirely** — `#results` hidden, `lastReport` nulled, empty-state explains — so an invalid field never
+  silently computes or exports with a defaulted value. A sub-1-year loan tenure is clamped to 1 year.
+- **Negative amounts are shown** (a money chip keeps a visible leading `-`) and block/flag, rather than
+  being silently flipped positive.
+- A **sale price of 0 is valid** (total loss / gift) — the guard requires the field *provided*, not truthy;
+  the **purchase price** must still be > 0.
+- When inputs are missing/invalid, `calculate()` hides `#results`, **nulls `lastReport`, destroys the chart,
+  and blanks the stale result/breakdown/chart text** — nothing stale is shown or exported (copy/email guard null).
+- **Underwater sale** (`#underwaterNote`): if proceeds after selling costs don't cover the outstanding loan,
+  it shows the **cash top-up** needed at completion.
 - A break-even ≤ 0 shows **"S$0 or below"** / "profitable at any price" (never a misleading positive).
-- Scenario sliders persist across base-case edits; there is no "stale base" warning (results are live).
+- Scenario **rate/sale-price** sliders persist across base edits; the scenario **LTV re-syncs** to the main
+  LTV (it's absolute). No "stale base" warning (results are live).
+- **A11y:** section titles are `role="heading"`; `#results` has no broad `aria-live` — a small `#srSummary`
+  (`role="status"`) announces a one-line Net-P&L summary on recalc.
 
 > ⚠️ SG stamp-duty rules change by policy. Re-verify §4 against IRAS/MAS (§10) periodically; the rates
 > and dates are hardcoded intentionally (there is no real-time rates API).
@@ -376,3 +391,26 @@ Implementation:
   and the table reconciles.
 
 Also fixed here: the ABSD "rates effective" chip badge now includes the 16 Dec 2021 regime.
+
+---
+
+## 16. Robustness & accessibility — third QA pass (2026-07-02)
+
+1. **No hang on huge inputs.** `num()` clamps to [0, 1e12]; loan tenure clamps to ≤ 35 (with a warning);
+   `buildAmort` hard-caps the schedule at 600 months. A pasted `1e308` tenure previously made `totalM`
+   Infinity and spun the amortisation loop forever, hanging the page.
+2. **SC + foreigner refund path.** Section B replacement remission now applies to **any couple with a SC
+   spouse** (modelled as the higher-rate profile, e.g. foreigner), not just SC/PR profiles — the checkbox
+   shows for a 2nd property whenever the buyer isn't an entity. (See §4.3.)
+3. **Invalid native-number inputs block.** A `validity.badInput` field now hides results and nulls
+   `lastReport` (blocking export), instead of computing/exporting with a silent default.
+4. **Negative money is visible.** `formatMoney` keeps a leading `-`, so a negative price is shown and
+   treated as invalid (0 → guard) + flagged, instead of silently becoming positive.
+5. **Scenario LTV re-syncs** to the main LTV on every recalc (the rate & sale-price deltas still persist).
+6. **Underwater warning** (`#underwaterNote`): shows the cash top-up needed when sale proceeds don't cover
+   the outstanding loan.
+7. **S$0 sale modelable** (the guard requires the sale field *provided*, not truthy); invalid states also
+   blank the stale results / breakdown / chart DOM.
+8. **Mobile break-even label** moved above the bar (it was overlapping the coloured fill on narrow screens).
+9. **Accessibility:** removed the broad `aria-live` on `#results`; added a concise `#srSummary`
+   (`role="status"`) live region announcing the Net-P&L one-liner; section titles are `role="heading"`.
