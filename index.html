@@ -544,8 +544,10 @@
 
   <button type="button" class="story-cta" onclick="calculate(true)">See the full breakdown <i class="ti ti-arrow-down" aria-hidden="true"></i></button>
 
-  <!-- ══════════════ Fine-tune drawer: every remaining detail ══════════════ -->
-  <details class="more-options">
+  <!-- Fine-tune drawer: every remaining detail. Expanded by default (open) so the full inputs are
+       visible on first load; the user can still collapse it. To restore progressive disclosure,
+       remove the `open` attribute below. -->
+  <details class="more-options" open>
     <summary><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> Fine-tune the details — dates, loan &amp; rates, fees, rental <span class="chev" aria-hidden="true">▾</span></summary>
     <div class="more-options-body">
 

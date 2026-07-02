@@ -231,7 +231,7 @@ stacked below on mobile). Do not turn this back into a labelled grid of fields.
   - `#holdYearsQuick` is a small chip that writes `#saleDate` (= purchase date + N years) via
     `applyHoldYears()`; editing the exact dates in the drawer syncs it back via `syncHoldYearsField()`.
 - **Everything else lives in the `<details class="more-options">` "Fine-tune the details" drawer**:
-  exact dates, price basis (lump vs PSF), LTV/loan/tenure/rates, fees, valuations, purpose note, rental.
+  exact dates, price basis (lump vs PSF), LTV/loan/tenure/rates, fees, valuations, purpose note, rental. It is **expanded by default** (the details element carries the `open` attribute) so every input is visible on first load; remove `open` to restore collapsed-by-default progressive disclosure.
   `#purchaseLumpField` / `#saleLumpField` are now short pointer notes (kept so `togglePriceBasis()`
   can still show/hide them when switching to PSF).
 - **Prefilled worked example**: on load the story is filled (SC / 1st / S$1.5M / 5yr / S$1.8M / 2.75% /
