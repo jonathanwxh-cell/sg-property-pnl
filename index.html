@@ -631,7 +631,7 @@
     </div>
     <div class="field">
       <label for="loanTenure">Loan tenure (years)</label>
-      <input type="number" id="loanTenure" placeholder="30" min="1" max="35" oninput="updateLtvCap()">
+      <input type="number" id="loanTenure" placeholder="30" min="1" max="35" oninput="if(this.value>35)this.value=35;updateLtvCap()">
     </div>
     <div class="field">
       <label for="fixedRate">Fixed rate (% p.a.)</label>
@@ -1265,7 +1265,7 @@ function updateRentalCalc() {
   var y       = pp > 0 ? (full / pp * 100).toFixed(2) : '—';
   var el      = document.getElementById('rentalCalcHint');
   el.innerHTML = monthly > 0
-    ? '<span class="badge badge-info">Gross yield: ' + y + '% p.a.</span> <span class="badge badge-info">Effective annual rent (@' + occ + '% occ): ' + fmt(eff) + '</span>'
+    ? '<span class="badge badge-info">Gross yield (scheduled): ' + y + '% p.a.</span> <span class="badge badge-info">Effective annual rent (@' + occ + '% occ): ' + fmt(eff) + '</span>'
     : '';
 }
 
@@ -1275,17 +1275,26 @@ function toggleBreakdown() {
   var opening = body.style.display === 'none';
   body.style.display   = opening ? 'block' : 'none';
   chev.style.transform = opening ? 'rotate(180deg)' : 'rotate(0deg)';
+  /* Keep the story CTA's label + arrow in sync whichever control toggled the table, so the button always
+     reflects the current state (open vs closed) instead of sitting on a stale "See...". */
+  var cta = document.querySelector('.story-cta[onclick*="showFullBreakdown"]');
+  if (cta) cta.innerHTML = opening
+    ? 'Hide the full breakdown <i class="ti ti-arrow-up" aria-hidden="true"></i>'
+    : 'See the full breakdown <i class="ti ti-arrow-down" aria-hidden="true"></i>';
 }
 
-/* The story's "See the full breakdown" CTA: compute, EXPAND the (collapsed-by-default) cost breakdown,
-   and scroll to it — previously it only scrolled and left the breakdown collapsed. */
+/* The story's "See the full breakdown" CTA now TOGGLES the (collapsed-by-default) cost breakdown and, when
+   opening, scrolls to it — so clicking always produces a visible change (table shows/hides, chevron rotates,
+   button label flips) instead of appearing to do nothing. The rows always exist in the DOM (needed for the
+   reconciliation check), so it is the container's visibility that changes, not the row count. */
 function showFullBreakdown() {
   calculate(false);
   if (getComputedStyle(document.getElementById('results')).display === 'none') return;
   var body = document.getElementById('breakdownBody');
-  if (body && body.style.display === 'none') toggleBreakdown();
-  var tbl = document.getElementById('breakdownTable');
-  if (tbl) tbl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (!body) return;
+  var opening = body.style.display === 'none';
+  toggleBreakdown();
+  if (opening) { var tbl = document.getElementById('breakdownTable'); if (tbl) tbl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
 
 /* ─────────────────────────────────────────────
@@ -1458,14 +1467,16 @@ function calculate(scroll) {
   }
   /* Flag fields the browser can't parse (e.g. "1e", "--") or that hold a negative — otherwise they
      silently fall back to a default or 0 and drive a misleading result rather than being questioned. */
-  var _badField = false, _negField = false;
+  var _badField = false, _negField = false, _cappedField = false;
   ['purchasePrice','salePrice','ltvPct','loanTenure','fixedRate','fixedPeriod','floatRate','legalBuy','purchaseValuation','saleValuation','agentComm','legalSell','agentBuy','propTax','maintenance','monthlyRent','occupancy','rentalExpenses','purchaseSqft','purchasePricePsf','saleSqft','salePricePsf'].forEach(function(id) {
     var el = document.getElementById(id); if (!el) return;
     if (el.validity && el.validity.badInput) _badField = true;
     var v = rawNum(id); if (!isNaN(v) && v < 0) _negField = true;
+    if (!isNaN(v) && v > 1e12) _cappedField = true;   // num() silently caps at 1e12 — surface it below
   });
   if (_badField) inputWarnings.push('a number field contains characters that aren’t a valid number — that field is being ignored');
   if (_negField) inputWarnings.push('negative amounts aren’t valid');
+  if (_cappedField) inputWarnings.push('a value above S$1,000,000,000,000 was capped to keep the math finite');
 
   /* A sale price of 0 is a legitimate scenario (total loss / gift), so require the field to be *provided*
      rather than truthy; the purchase price must still be > 0. An invalid (badInput) field blocks the whole
@@ -1529,8 +1540,8 @@ function calculate(scroll) {
     + '<div class="metric"><div class="metric-label">Total interest paid</div><div class="metric-val neg">-' + fmt(totalInterest) + '</div></div>'
     + '<div class="metric"><div class="metric-label">Loan balance still owed at sale</div><div class="metric-val">' + fmt(outstandingLoan) + '</div></div>';
   if (isRental) {
-    metrics += '<div class="metric"><div class="metric-label"><abbr class="term" title="Full contractual annual rent at 100% occupancy, divided by purchase price, before expenses, tax, maintenance, or mortgage cost.">Gross rental yield</abbr></div><div class="metric-val pos">' + grossYield.toFixed(2) + '%</div></div>'
-             + '<div class="metric"><div class="metric-label"><abbr class="term" title="Occupancy-adjusted annual rent (contractual rent × expected occupancy), minus rental expenses, property tax, and maintenance, divided by purchase price — so it moves with occupancy like the P&L. Mortgage interest is NOT subtracted; it is shown separately as Total interest paid.">Net rental yield</abbr></div><div class="metric-val ' + (netYield>=0?'pos':'neg') + '">' + netYield.toFixed(2) + '%</div></div>';
+    metrics += '<div class="metric"><div class="metric-label"><abbr class="term" title="Full contractual annual rent at 100% occupancy, divided by purchase price, before expenses, tax, maintenance, or mortgage cost.">Gross yield (scheduled)</abbr></div><div class="metric-val pos">' + grossYield.toFixed(2) + '%</div></div>'
+             + '<div class="metric"><div class="metric-label"><abbr class="term" title="Occupancy-adjusted annual rent (contractual rent × expected occupancy), minus rental expenses, property tax, and maintenance, divided by purchase price — so it moves with occupancy like the P&L. Mortgage interest is NOT subtracted; it is shown separately as Total interest paid.">Net yield (effective)</abbr></div><div class="metric-val ' + (netYield>=0?'pos':'neg') + '">' + netYield.toFixed(2) + '%</div></div>';
   }
   document.getElementById('metricGrid').innerHTML = metrics;
 
@@ -1615,7 +1626,9 @@ function calculate(scroll) {
     totalRentalGross:totalRentalGross, totalRentalExp:totalRentalExp, ssdInfo:ssdInfo, ssd:ssd,
     agentSellCost:agentSellCost, agentCommPct:agentCommPct, legalSell:legalSell, outstandingLoan:outstandingLoan,
     equity:equity, loan:loan, totalCashIn:totalCashIn,
-    netPnl:netPnl, irr:irr, breakEven:breakEven, grossYield:grossYield, netYield:netYield
+    netPnl:netPnl, irr:irr, breakEven:breakEven, grossYield:grossYield, netYield:netYield,
+    ltvPct:ltvPct, tenure:tenure, fr:fr, fp:fp, flr:flr, bt:bt, pc:pc, fta:fta,
+    occupancy:occupancy, monthlyRent:monthlyRent, purchaseVal:purchaseVal, saleVal:saleVal
   };
 
   initScenarioPanel(out);
@@ -1753,6 +1766,17 @@ function buildReportText() {
   lines.push('SINGAPORE PROPERTY P&L REPORT (estimate only, not financial advice)');
   lines.push('Purchase: ' + r.pd + '   Sale: ' + r.sd + '   Holding period: ' + r.holdMonths + ' months');
   lines.push('');
+  lines.push('ASSUMPTIONS & INPUTS');
+  var _btMap = { SC:'Singapore Citizen', PR:'Permanent Resident', FG:'Foreigner', EN:'Entity' };
+  var _pcMap = { '1':'1st residential property', '2':'2nd residential property', '3':'3rd+ residential property' };
+  lines.push('Buyer: ' + (_btMap[r.bt] || r.bt) + ' · ' + (_pcMap[r.pc] || (r.pc + ' properties')) + (r.fta ? ' · FTA national (taxed at citizen ABSD rate)' : ''));
+  lines.push('Usage: ' + (r.isRental ? 'Rental investment' : 'Own stay'));
+  lines.push('Purchase price: ' + fmt(r.pp) + (r.purchaseVal > 0 ? '  (market valuation ' + fmt(r.purchaseVal) + '; stamp duty on the higher)' : ''));
+  lines.push('Sale price: ' + fmt(r.sp) + (r.saleVal > 0 ? '  (market valuation ' + fmt(r.saleVal) + '; SSD on the higher)' : ''));
+  lines.push('Loan: ' + fmt(r.loan) + ' (' + r.ltvPct + '% LTV) over ' + r.tenure + ' years');
+  lines.push('Interest rate: ' + r.fr + '% p.a.' + (r.fp > 0 ? ' fixed for ' + r.fp + ' yr, then ' + r.flr + '% floating' : ' throughout'));
+  if (r.isRental) lines.push('Rent: ' + fmt(r.monthlyRent) + '/month at ' + r.occupancy + '% occupancy');
+  lines.push('');
   lines.push('SUMMARY');
   lines.push('Net P&L: ' + fmtSgn(r.netPnl));
   lines.push('Annualised return (simplified CAGR, not true XIRR): ' + r.irr.toFixed(2) + '%');
@@ -1760,8 +1784,8 @@ function buildReportText() {
   lines.push('Total interest paid: -' + fmt(r.totalInterest));
   lines.push('Loan balance still owed at sale: ' + fmt(r.outstandingLoan));
   if (r.isRental) {
-    lines.push('Gross rental yield: ' + r.grossYield.toFixed(2) + '%');
-    lines.push('Net rental yield: ' + r.netYield.toFixed(2) + '%');
+    lines.push('Gross yield (scheduled, 100% occupancy): ' + r.grossYield.toFixed(2) + '%');
+    lines.push('Net yield (effective, occupancy-adjusted): ' + r.netYield.toFixed(2) + '%');
   }
   lines.push('');
   lines.push('UPFRONT (CASH)');
@@ -2028,6 +2052,10 @@ function formatMoney(el) {
   var s = String(el.value);
   var neg = s.trim().charAt(0) === '-';   // keep a leading minus VISIBLE so a negative isn't silently flipped positive
   var raw = s.replace(/[^0-9]/g, '');
+  /* Hard-cap the digit count so continuous typing (never leaving the field) or a paste can't build an absurd
+     value like "1,800,000,700,000". 10 digits (up to ~S$10 billion) is far above any real property price;
+     together with clear-on-focus (a fresh entry starts empty) this makes runaway concatenation impossible. */
+  if (raw.length > 10) raw = raw.slice(0, 10);
   var caret = el.selectionStart == null ? s.length : el.selectionStart;
   var digitsBefore = s.slice(0, caret).replace(/[^0-9]/g, '').length;
   if (!raw) { el.value = neg ? '-' : ''; return; }
@@ -2118,10 +2146,14 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitStorySe
 ['purchasePrice','salePrice','holdYearsQuick','fixedRate','loanTenure'].forEach(function(id) {
   var e = document.getElementById(id);
   if (!e) return;
-  var example = e.value, pristine = true;
-  e.addEventListener('focus', function() { if (pristine) e.value = ''; });
-  e.addEventListener('input', function() { pristine = false; });
-  e.addEventListener('blur',  function() { if (pristine && e.value.trim() === '') e.value = example; });
+  var stash = e.value, typed = false;
+  /* Clear on EVERY focus (stashing the current value), restoring it on blur only if the user typed nothing.
+     This guarantees the first keystroke starts a fresh number every time — not just on the first edit — so a
+     formatted money field can never concatenate an old value with a new one: re-editing "1,800,000" and
+     typing 700000 can't produce "1,800,000,700,000". Tabbing through without typing leaves it untouched. */
+  e.addEventListener('focus', function() { stash = e.value; typed = false; e.value = ''; });
+  e.addEventListener('input', function() { typed = true; });
+  e.addEventListener('blur',  function() { if (!typed && e.value.trim() === '') e.value = stash; });
 });
 
 /* Show the worked-example result immediately (the story starts alive, not blank). */
