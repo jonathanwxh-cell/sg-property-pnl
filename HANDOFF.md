@@ -173,10 +173,14 @@ Three regimes by purchase date:
   (a CSS margin/size reset keeps them reading as labels, not big headings); range sliders use a **26px thumb /
   8px track** for touch; `#results` has no broad `aria-live` — a small `#srSummary` (`role="status"`) announces
   a one-line Net-P&L summary on recalc.
-- **Prefilled example fields clear their untouched example on focus** (`purchasePrice`, `salePrice`,
-  `holdYearsQuick`, `fixedRate`, `loanTenure`) so the first keystroke starts a fresh number and can never
-  concatenate the example with typed digits (no "1,800,000,700,000"); an un-typed focus restores the example on
-  blur. This replaced select-on-focus, which didn't survive a real click's mouseup or `formatMoney`'s caret rewrites.
+- **Prefilled example fields clear on EVERY focus** (`purchasePrice`, `salePrice`, `holdYearsQuick`,
+  `fixedRate`, `loanTenure`), stashing the current value and restoring it on an un-typed blur — so re-editing a
+  set value replaces it, not just the first edit. Additionally **`formatMoney` hard-caps money fields at 10
+  digits**, so continuous typing (never leaving the field) or a paste can never build an absurd value like
+  "1,800,000,700,000". (Select-on-focus was tried and abandoned — it didn't survive a real click's mouseup or
+  `formatMoney`'s caret rewrites.)
+- **Loan tenure visibly clamps to the MAS max of 35 in the field** (like occupancy), so it can't show 99 while
+  the math uses 35. A value above the `num()` **1e12** cap raises a "was capped" warning instead of silently capping.
 - The top **BSD/ABSD hint chips recompute on every price, valuation AND purchase-date change**, so they always
   match the date-aware duty the calc uses (a 2018-02-19 purchase shows the pre-2018 3%-top BSD = S$54,600 on S$2M).
 
@@ -508,3 +512,30 @@ Two findings from an external "round-8" critical-verify script (`fb447c3`):
 
 Verified in-browser on localhost + the live reference URL, function-level and full end-to-end (including the
 copied report): no `NaN` with 1e308 rates, correct SSD across all six regimes, and the breakdown still reconciles.
+
+---
+
+## 20. Input UX & report auditability — seventh QA pass (2026-07-03)
+
+Six UX/robustness items from continued external QA (`7cf1c86`):
+
+1. **Money fields could still append into absurd values** (e.g. "1,800,000,700,000"). Clear-on-focus only
+   cleared the *first* edit; re-editing a set value — or typing continuously without leaving the field — still
+   concatenated. Now the example fields **clear on EVERY focus** (restore on an un-typed blur), and
+   `formatMoney` **hard-caps money fields at 10 digits** so no absurd value can form regardless of focus state.
+2. **"See the full breakdown" was ambiguous** (the rows always exist in the DOM, so a row-count check never
+   changes). It's now a clear **toggle**: the table shows/hides, the chevron rotates, the button label flips
+   See ⇄ Hide, and it stays in sync with the section-header toggle.
+3. **Loan tenure now visibly clamps to 35** in the field (was showing 99 while the math capped to 35).
+4. **A value above the `num()` 1e12 cap now warns** ("a value above S$1,000,000,000,000 was capped…") instead
+   of being silently capped.
+5. **Rental yields relabelled** to distinguish scheduled vs effective: **Gross yield (scheduled, 100%
+   occupancy)** and **Net yield (effective, occupancy-adjusted)** — in the metrics, the rental helper badge,
+   and the report.
+6. **The copied report gained an ASSUMPTIONS & INPUTS block** — buyer type + property count, usage,
+   price + valuation, loan/LTV/tenure, fixed/floating rate, rent + occupancy — so it is self-auditable.
+
+Verified in-browser including real keystroke/click interaction (not just direct calls): re-entry replaces
+(1,800,000), a 14-digit input caps to 10 digits, the breakdown toggles with a label flip, tenure 99→35, the
+capped-value warning fires, the yield labels, and the assumptions block; the breakdown still reconciles; no
+console errors.

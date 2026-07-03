@@ -16,6 +16,7 @@ must never regress are consolidated in **[HANDOFF.md §4](./HANDOFF.md)**.
 
 | Round | Date | Focus | Outcome |
 |------:|------|-------|---------|
+| **7** | 2026‑07‑03 | Input UX & report auditability | money digit‑cap · breakdown toggle · tenure clamp · capped‑value warning · scheduled/effective yields · report assumptions |
 | **6** | 2026‑07‑03 | Historical SSD + rate‑overflow guard (round‑8 findings) | 2010 progressive SSD regimes · `1e308` rate → `NaN` fixed |
 | **5** | 2026‑07‑02/03 | Real‑interaction re‑fixes + mobile/a11y polish | 4 re‑reported issues fixed for real + native `<h2>`/touch sliders/back‑pill |
 | **4** | 2026‑07‑02 | Input‑edge fixes | negatives block · occupancy>100 · field append · breakdown CTA |
@@ -28,6 +29,20 @@ must never regress are consolidated in **[HANDOFF.md §4](./HANDOFF.md)**.
 | **0** | 2026‑07‑02 | Baseline import + handoff docs | fixed & modernized calculator brought into this repo |
 
 ---
+
+## Round 7 — Input UX & report auditability
+`7cf1c86` · 2026‑07‑03 · detail: **HANDOFF.md §20** (+ §4.8)
+
+Six UX/robustness items from continued external QA:
+- **Money fields** clear on every focus (re-editing replaces, not just the first edit) + `formatMoney` hard-caps
+  at 10 digits, so no absurd "1,800,000,700,000" can form regardless of focus.
+- **"See the full breakdown"** is now a clear toggle (table shows/hides, chevron rotates, label flips See⇄Hide,
+  synced with the section header) — the rows always live in the DOM, so it's visibility that changes, not the count.
+- **Loan tenure visibly clamps to 35** in the field (was showing 99 while the math used 35).
+- **A value above 1e12 warns** instead of being silently capped.
+- **Yields relabelled** Gross (scheduled, 100% occupancy) / Net (effective, occupancy-adjusted).
+- **Copied report gains an ASSUMPTIONS & INPUTS block** (buyer, usage, price+valuation, loan/LTV/tenure, rate,
+  rent+occupancy) for auditability.
 
 ## Round 6 — Historical SSD regimes + interest-rate overflow guard
 `fb447c3` · 2026‑07‑03 · detail: **HANDOFF.md §19** (+ §4.1 / §4.8 invariants)
