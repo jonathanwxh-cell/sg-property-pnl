@@ -61,13 +61,17 @@ change or move, so treat it as a convenience reference, not a permanent contract
    [0, 1e12]; **`validity.badInput` and negative amounts BLOCK** the calc (results hidden, `lastReport`
    nulled → no stale export), negatives shown not silently flipped; **S$0 sale is valid**; an **underwater
    sale** shows the cash top-up (`#underwaterNote`). **Occupancy and loan tenure visibly clamp in the field**
-   (0–100 / max 35); **money fields clear on every focus and `formatMoney` caps them at 10 digits**, so
-   re-editing replaces and no absurd value like "1,800,000,700,000" can form; a value above the `num()` 1e12
+   (0–100 / max 35); **money fields clear on every focus and `formatMoney` caps them at 10 digits, parses a
+   decimal as dollars-and-cents (a "1500000.00" paste is 1,500,000 not 150,000,000) and honours k/m shorthand
+   ("1.65m" → 1,650,000)**, so re-editing replaces and no absurd value like "1,800,000,700,000" can form; a value above the `num()` 1e12
    cap **warns**; the top **BSD/ABSD hint chips refresh on purchase-date change too** (not just price/valuation).
    A11y: **native `<h2>` section titles** under the single `<h1>`, **26px slider thumbs / 8px tracks** for
    touch, and a narrow `#srSummary` live region (no broad `aria-live`). Yields are labelled **scheduled**
    (gross, 100% occupancy) vs **effective** (net, occupancy-adjusted); the copied report includes an
-   **ASSUMPTIONS & INPUTS** block for auditability.
+   **ASSUMPTIONS & INPUTS** block for auditability. Duty **hint chips refresh on any price/valuation/date change
+   and clear on a blank price**; the ABSD chip shows remission **bridging cash** (Section B pays upfront, then
+   reclaims); **"hold N years" maps to the exact calendar anniversary**; commission fields accept **fractional %**
+   (`step="any"`).
 
 ## Run & verify locally (no build, no test suite)
 - Serve the folder and open `index.html`:

@@ -21,7 +21,9 @@ class names** (the JS depends on them). Do **not** regress the Singapore tax/fin
 - **Robustness:** `num()` clamps [0,1e12] + **interest rates clamped to [0,100]% in `buildAmort`** (else a 1e308 rate overflows `Math.pow` to NaN) + tenure ≤35yr + amortisation loop capped (no `1e308` hang);
   invalid (`badInput`) / negative inputs **block** calc+export (negatives shown, not flipped); **S$0 sale valid**;
   underwater sale shows a cash top-up; **occupancy + loan tenure visibly clamp in the field** (0–100 / max 35);
-  **money fields clear on every focus + `formatMoney` caps 10 digits** (no absurd concatenation); **>1e12 warns**;
+  **money fields clear on every focus + `formatMoney` caps 10 digits, parses decimals as $-and-cents (Excel paste
+  "1500000.00"→1,500,000) + k/m shorthand** (no absurd concatenation); **>1e12 warns**; **duty chips refresh on
+  price change + clear on blank**; **ABSD chip shows Section B bridging cash**; **"hold N yr" = exact anniversary**;
   **BSD/ABSD chips refresh on date change too**;
   a11y = **native `<h2>` titles** under one `<h1>` + **touch-sized sliders (26px thumb / 8px track)** + narrow
   `#srSummary` live region

@@ -111,7 +111,9 @@ Three regimes by purchase date:
   buying their 2nd property** while selling the first within 6 months → rate 0. Qualifies **whatever the
   higher-rate profile** (SC+foreigner included — model the couple as the higher-rate spouse, e.g. FG); the
   checkbox asserts the SC spouse and shows for any non-entity 2nd-property buyer. Modelled **pay-now /
-  reclaim-later** — ABSD paid upfront (counts in peak/bridging cash), shown refunded; Net P&L excludes it.
+  reclaim-later** — ABSD paid upfront (counts in peak/bridging cash), shown refunded; Net P&L excludes it. The
+  `#absdHint` headline reads "**0% net — pay X% upfront, reclaimed…**" (Section A spouse remission reads "0% net —
+  fully remitted at stamping, no cash bridging"), so the chip never hides the bridging cash behind a bare "0%".
 - **Spouse remission** (`spouseRemitFirst`, "Section A"): a **married couple with ≥1 SC spouse buying
   their 1st property** jointly, neither owning any other residential property → rate 0, **whatever the
   other spouse's nationality** (SC+foreigner qualifies). **Full remission at stamping** — no ABSD paid, no
@@ -177,8 +179,9 @@ Three regimes by purchase date:
   `fixedRate`, `loanTenure`), stashing the current value and restoring it on an un-typed blur — so re-editing a
   set value replaces it, not just the first edit. Additionally **`formatMoney` hard-caps money fields at 10
   digits**, so continuous typing (never leaving the field) or a paste can never build an absurd value like
-  "1,800,000,700,000". (Select-on-focus was tried and abandoned — it didn't survive a real click's mouseup or
-  `formatMoney`'s caret rewrites.)
+  "1,800,000,700,000". **`formatMoney` also parses a decimal as dollars-and-cents** — a spreadsheet paste of
+  "1500000.00" becomes 1,500,000, NOT 150,000,000 — and honours **k/m shorthand** ("1.65m" → 1,650,000).
+  (Select-on-focus was tried and abandoned — it didn't survive a real click's mouseup or `formatMoney`'s rewrites.)
 - **Loan tenure visibly clamps to the MAS max of 35 in the field** (like occupancy), so it can't show 99 while
   the math uses 35. A value above the `num()` **1e12** cap raises a "was capped" warning instead of silently capping.
 - The top **BSD/ABSD hint chips recompute on every price, valuation AND purchase-date change**, so they always
@@ -512,6 +515,36 @@ Two findings from an external "round-8" critical-verify script (`fb447c3`):
 
 Verified in-browser on localhost + the live reference URL, function-level and full end-to-end (including the
 copied report): no `NaN` with 1e308 rates, correct SSD across all six regimes, and the breakdown still reconciles.
+
+---
+
+## 21. Input integrity — eighth QA pass (2026-07-03)
+
+Eight input-handling findings (`30698d7`):
+
+1. **Spreadsheet-paste decimal trap (P0).** A paste of `1500000.00` was read as **150,000,000** — `formatMoney`
+   stripped the dot and treated the cents as integer digits. It now parses a decimal as dollars-and-cents
+   (`1,500,000.00` → 1,500,000) and honours **k/m shorthand** (`1.65m` → 1,650,000, was 165; `1.9m` → 1,900,000;
+   `1500k` → 1,500,000). Plain integer typing keeps its caret-preserving live format.
+2. **Stale top BSD chip.** The `#absdHint` "BSD: $Y" figure wasn't refreshed on a `purchasePrice` change (its
+   `oninput` lacked `updateAbsdHint`) — dropping the price to $1M left it at the old $44,600 while the breakdown
+   showed $24,600. The price paths now call `updateAbsdHint`.
+3. **PSF-mode blank state kept stale duty chips.** `updateBsdHint` now **clears** its chip on a blank/invalid
+   price instead of early-returning and leaving the old estimate; the PSF paths also refresh `updateAbsdHint`.
+4. **"Hold N years" landed one day early.** `applyHoldYears` used a 365.25-day approximation that sat ~1 day
+   before the anniversary, pushing the sale into a harsher SSD tier. It now uses the **exact calendar
+   anniversary** (`setFullYear`), so "hold 3 years" → the 3rd anniversary (verified 2024-01-01 → 2027-01-01).
+5. **ABSD "0%" headline hid the bridging cash.** The `#absdHint` chip now distinguishes **Section A** (spouse —
+   "0% net, fully remitted at stamping, no cash bridging") from **Section B** (replacement — "0% net, pay X%
+   upfront, reclaimed after selling your first home within 6 months").
+6. **Invalid inputs left a stale `#srSummary`.** The invalid-input guard now blanks `#srSummary` too, so a
+   screen reader no longer announces a stale Net P&L after the inputs go invalid.
+7. **Fractional commissions were browser-invalid yet calculated.** `agentComm` / `agentBuy` now use `step="any"`
+   so a `1.75%` commission is valid rather than a `stepMismatch` the calc used anyway.
+
+Verified in-browser (function-level + real interaction): Excel paste + m/k shorthand, hold-3yr → 2027-01-01, the
+BSD chip refreshing 44,600 → 24,600, both remission headlines, `#srSummary` cleared on invalid, `#bsdHint` cleared
+on blank, and a valid `1.75%` commission; the breakdown still reconciles; no console errors.
 
 ---
 

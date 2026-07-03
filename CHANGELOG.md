@@ -16,6 +16,7 @@ must never regress are consolidated in **[HANDOFF.md §4](./HANDOFF.md)**.
 
 | Round | Date | Focus | Outcome |
 |------:|------|-------|---------|
+| **8** | 2026‑07‑03 | Input integrity | Excel‑paste decimal trap · stale duty chips · hold‑year anniversary · ABSD‑remission clarity · fractional commissions |
 | **7** | 2026‑07‑03 | Input UX & report auditability | money digit‑cap · breakdown toggle · tenure clamp · capped‑value warning · scheduled/effective yields · report assumptions |
 | **6** | 2026‑07‑03 | Historical SSD + rate‑overflow guard (round‑8 findings) | 2010 progressive SSD regimes · `1e308` rate → `NaN` fixed |
 | **5** | 2026‑07‑02/03 | Real‑interaction re‑fixes + mobile/a11y polish | 4 re‑reported issues fixed for real + native `<h2>`/touch sliders/back‑pill |
@@ -29,6 +30,20 @@ must never regress are consolidated in **[HANDOFF.md §4](./HANDOFF.md)**.
 | **0** | 2026‑07‑02 | Baseline import + handoff docs | fixed & modernized calculator brought into this repo |
 
 ---
+
+## Round 8 — Input integrity
+`30698d7` · 2026‑07‑03 · detail: **HANDOFF.md §21** (+ §4.8 / §4.3)
+
+Eight input-handling findings:
+- **Spreadsheet-paste decimal trap (P0):** `1500000.00` was read as 150,000,000. `formatMoney` now parses a
+  decimal as dollars-and-cents (→ 1,500,000) and honours k/m shorthand (`1.65m` → 1,650,000, was 165).
+- **Stale top BSD chip:** `#absdHint`'s "BSD: $Y" wasn't refreshed on a price change; the price paths now call
+  `updateAbsdHint`, and `updateBsdHint` clears its chip on a blank price (fixes the PSF-blank stale chip).
+- **"Hold N years"** now maps to the exact calendar anniversary (was ~1 day early → a harsher SSD tier).
+- **ABSD remission headline** distinguishes Section A ("0% net, fully remitted, no bridging") from Section B
+  ("0% net, pay X% upfront, reclaimed within 6 months").
+- **Invalid inputs** now also clear `#srSummary` (no stale aria-live announcement).
+- **Fractional commissions** (`step="any"`) are valid, not browser-invalid-yet-calculated.
 
 ## Round 7 — Input UX & report auditability
 `7cf1c86` · 2026‑07‑03 · detail: **HANDOFF.md §20** (+ §4.8)
