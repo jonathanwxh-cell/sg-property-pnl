@@ -76,14 +76,21 @@ fixed estimates. A config flag for this is a good small task (see §8).
 
 These were verified against IRAS/MAS/MOF (sources in §10). Bugs here are silent and expensive.
 
-### 4.1 Seller's Stamp Duty — `getSsdInfo(pd, sd)`
+### 4.1 Seller's Stamp Duty — `getSsdInfo(pd, sd, base)`
 - **Regime chosen by PURCHASE date**; tiers by **calendar anniversary**, NOT a 365.25-day count.
 - **The anniversary boundary is EXCLUSIVE:** `within(n)` is `sDate < anniv(n)`. Disposing **on** the Nth
   anniversary counts as "held **more than** N years" (the lower/zero tier), per IRAS — e.g. bought
   21 Mar 2023, sold on/after 21 Mar 2026 ⇒ **no SSD**. A tier's last chargeable day is the anniversary − 1
   (returned as `boundary`, with `nextRate`, for the day-level cliff display). **Do NOT revert to `<=`.**
 - **On/after 4 Jul 2025:** 4-year holding — ≤1yr 16 / ≤2yr 12 / ≤3yr 8 / ≤4yr 4 / >4yr 0.
-- 11 Mar 2017 – 3 Jul 2025: 3-year — 12 / 8 / 4 / 0. Earlier regimes (Jan 2011, pre-2011) retained.
+- 11 Mar 2017 – 3 Jul 2025: 3-year — 12 / 8 / 4 / 0. 14 Jan 2011 – 10 Mar 2017: 4-year 16 / 12 / 8 / 4.
+- **2010 progressive regimes** (before 14 Jan 2011): SSD is a **BSD-style progressive amount** — 1% first
+  $180k, 2% next $180k, 3% remainder — NOT a flat %. **30 Aug 2010 – 13 Jan 2011:** 3-year taper (full /
+  two-thirds / one-third by holding year). **20 Feb 2010 – 29 Aug 2010:** within 1 year only, full
+  progressive. **Before 20 Feb 2010:** SSD did not exist (0%). `getSsdInfo` takes the SSD `base` (higher of
+  sale price/valuation) and returns the exact `amount` plus an effective `rate` (so the flat-rate display and
+  break-even stay unchanged). Check: **$1.8M bought 30 Aug 2010, sold 29 Aug 2012 ⇒ S$32,400** (two-thirds of
+  the $48,600 full progressive; ~1.8% effective — the within-1-year case is $48,600 progressive, not $54,000 flat).
 - SSD is charged on the **higher of sale price or market valuation** (see 4.5).
 
 ### 4.2 Buyer's Stamp Duty — `getBsdRate(price, date)`
@@ -142,7 +149,10 @@ Three regimes by purchase date:
 
 ### 4.8 Input safety & display (do not regress)
 - `num()` clamps every numeric field to **[0, 1e12]** (floors negatives; caps absurd/`1e308` values so they
-  can't overflow to Infinity). A field the browser can't parse (`validity.badInput`) **blocks the calc
+  can't overflow to Infinity). **Interest rates get a tighter clamp** — `buildAmort` caps `fixedRate`/`floatRate`
+  to **[0, 100]%**, because even a 1e12% rate overflows `Math.pow(1+r, n)` to Infinity and leaks NaN into every
+  figure (Net P&L, interest, balance, the copied report); a rate over 100% also warns. A field the browser
+  can't parse (`validity.badInput`) **blocks the calc
   entirely** — `#results` hidden, `lastReport` nulled, empty-state explains — so an invalid field never
   silently computes or exports with a defaulted value. A sub-1-year loan tenure is clamped to 1 year.
 - **Negative amounts block the calc** — `_negField` is in the invalid guard, so a negative in ANY field
@@ -474,3 +484,27 @@ Verified in-browser on both localhost and the live reference URL: 10 `<h2>` sect
 `role="heading"` divs, 8px slider track, occupancy 150→100 & −20→0, `bsdHint` S$69,600↔S$54,600 on date flip,
 sale field → "700,000", breakdown expands to 19 rows, no console errors, no mobile horizontal overflow, and the
 cost breakdown still reconciles exactly to Net P&L.
+
+---
+
+## 19. Historical SSD regimes + interest-rate overflow — sixth QA pass (2026-07-03)
+
+Two findings from an external "round-8" critical-verify script (`fb447c3`):
+
+1. **`fixedRate` / `floatRate` = `1e308` leaked `NaN`** into Net P&L, interest and loan balance — in the
+   visible UI *and* the copied report. `num()`'s [0, 1e12] clamp is too loose for a *rate*: even 1e12% makes
+   `Math.pow(1 + r, n)` overflow to Infinity, and Infinity / Infinity = NaN. Fixed by clamping the annual rates
+   to **[0, 100]% inside `buildAmort`** (so both the base render and the scenario panel are covered), plus a
+   "rate above 100% is treated as 100%" input warning. Real mortgage rates are single digits, so 100% is an
+   unreachable ceiling, not a real limit.
+2. **Pre-2011 SSD was a wrong flat-3% / 1-year stub.** Added the two 2010 progressive regimes IRAS actually
+   applied: **20 Feb 2010 – 29 Aug 2010** (SSD only if sold within 1 year; progressive 1% / 2% / 3% on the
+   $180k / $180k / remainder bands) and **30 Aug 2010 – 13 Jan 2011** (up to 3 years, tapering full / two-thirds
+   / one-third by year). **Before 20 Feb 2010 there was no SSD.** `getSsdInfo(pd, sd, base)` now takes the SSD
+   base and returns the exact progressive `amount` plus an effective `rate` (flat-rate display and break-even
+   unchanged). Verified: $1.8M bought 30 Aug 2010 → sold 29 Aug 2012 = **S$32,400** (2/3 of the $48,600 full
+   progressive; the within-1-year case is the progressive $48,600, not a flat $54,000); pre-20-Feb-2010 and
+   >3-year holds are 0; the Jan 2011 / Mar 2017 / Jul 2025 flat regimes are unchanged.
+
+Verified in-browser on localhost + the live reference URL, function-level and full end-to-end (including the
+copied report): no `NaN` with 1e308 rates, correct SSD across all six regimes, and the breakdown still reconciles.

@@ -8,7 +8,9 @@ browser JS). Keep it one file, add libraries only via CDN, and **preserve all el
 class names** (the JS depends on them). Do **not** regress the Singapore tax/finance invariants:
 
 - SSD **4 Jul 2025** regime (16/12/8/4 over 4 years; regime by purchase date; calendar-anniversary tiers,
-  boundary **exclusive** — a sale ON the Nth anniversary is "more than N years", strict `<`, not `<=`)
+  boundary **exclusive** — a sale ON the Nth anniversary is "more than N years", strict `<`, not `<=`);
+  historical regimes retained incl. the **2010 progressive** ones — `getSsdInfo(pd, sd, base)` returns an exact
+  amount; **no SSD before 20 Feb 2010**
 - BSD three regimes: pre-20 Feb 2018 **3% top**, 20 Feb 2018–14 Feb 2023 **4% top**, ≥15 Feb 2023 **6% >$3M** (no 7% band)
 - **Net P&L = interest only** — no principal add-back — so the breakdown table sums exactly to the total
 - LTV **75/45/35** by property count (**55/25/15 when tenure > 30 yrs**); duties on **max(price, valuation)**;
@@ -16,7 +18,7 @@ class names** (the JS depends on them). Do **not** regress the Singapore tax/fin
   and **all regimes incl. 16 Dec 2021**; both ABSD married-couple remissions need only **≥1 SC spouse**
   (SC+foreigner qualifies) — **replacement** (2nd home) pay-now/refund-later, **spouse** (1st home) full 0%;
   break-even handles valuation-based SSD & shows "S$0 or below"; IRR floors at **-100%** on wipe-out
-- **Robustness:** `num()` clamps [0,1e12] + tenure ≤35yr + amortisation loop capped (no `1e308` hang);
+- **Robustness:** `num()` clamps [0,1e12] + **interest rates clamped to [0,100]% in `buildAmort`** (else a 1e308 rate overflows `Math.pow` to NaN) + tenure ≤35yr + amortisation loop capped (no `1e308` hang);
   invalid (`badInput`) / negative inputs **block** calc+export (negatives shown, not flipped); **S$0 sale valid**;
   underwater sale shows a cash top-up; **occupancy visibly clamps to 0–100 in the field**; **prefilled example
   fields clear on focus** (first keystroke never concatenates); **BSD/ABSD chips refresh on date change too**;

@@ -35,9 +35,12 @@ change or move, so treat it as a convenience reference, not a permanent contract
    block) and keep every animation behind `@media (prefers-reduced-motion: reduce)`.
 
 ## Do NOT regress (details + rationale in HANDOFF.md §4–§6)
-1. **SSD** (`getSsdInfo`): 4 Jul 2025 regime = 16/12/8/4 over **4 years**; regime by purchase date; tiers
-   by **calendar anniversary** with an **exclusive boundary** — a sale ON the Nth anniversary counts as
-   "more than N years" (strict `<`; e.g. sold on the 4-yr anniversary ⇒ 0%). Do NOT revert to `<=`.
+1. **SSD** (`getSsdInfo(pd, sd, base)`): 4 Jul 2025 regime = 16/12/8/4 over **4 years**; regime by purchase
+   date; tiers by **calendar anniversary** with an **exclusive boundary** — a sale ON the Nth anniversary
+   counts as "more than N years" (strict `<`; e.g. sold on the 4-yr anniversary ⇒ 0%). Do NOT revert to `<=`.
+   Historical regimes retained incl. the **2010 progressive** ones (1%/2%/3% bands, tapering full/⅔/⅓ for
+   30 Aug 2010–13 Jan 2011; 1-year-only for 20 Feb–29 Aug 2010; **no SSD before 20 Feb 2010**) — they return an
+   exact `amount` off the SSD `base`, so keep passing it. Check: $1.8M, 30 Aug 2010→29 Aug 2012 ⇒ S$32,400.
 2. **BSD** (`getBsdRate`): three regimes — before 20 Feb 2018 **3% top**; 20 Feb 2018–14 Feb 2023 **4%**
    top; ≥15 Feb 2023 **6% above $3M** (no 7% band). Check: S$2M ⇒ 54,600 / 64,600 / 69,600.
 3. **Net P&L** (`computePnl`): financing cost is **interest only** — do NOT add `loan`/subtract

@@ -16,6 +16,7 @@ must never regress are consolidated in **[HANDOFF.md §4](./HANDOFF.md)**.
 
 | Round | Date | Focus | Outcome |
 |------:|------|-------|---------|
+| **6** | 2026‑07‑03 | Historical SSD + rate‑overflow guard (round‑8 findings) | 2010 progressive SSD regimes · `1e308` rate → `NaN` fixed |
 | **5** | 2026‑07‑02/03 | Real‑interaction re‑fixes + mobile/a11y polish | 4 re‑reported issues fixed for real + native `<h2>`/touch sliders/back‑pill |
 | **4** | 2026‑07‑02 | Input‑edge fixes | negatives block · occupancy>100 · field append · breakdown CTA |
 | **3** | 2026‑07‑02 | Robustness / tax / a11y (9 bugs) | `1e308` hang · SC+foreigner ABSD refund · invalid‑input blocking · a11y |
@@ -27,6 +28,21 @@ must never regress are consolidated in **[HANDOFF.md §4](./HANDOFF.md)**.
 | **0** | 2026‑07‑02 | Baseline import + handoff docs | fixed & modernized calculator brought into this repo |
 
 ---
+
+## Round 6 — Historical SSD regimes + interest-rate overflow guard
+`fb447c3` · 2026‑07‑03 · detail: **HANDOFF.md §19** (+ §4.1 / §4.8 invariants)
+
+Two findings from an external "round-8" critical-verify script:
+
+- **`fixedRate`/`floatRate` = `1e308` leaked `NaN`** into Net P&L, interest and loan balance (visible UI and the
+  copied report). `num()`'s [0, 1e12] clamp is too loose for a rate — even 1e12% overflows `Math.pow(1+r, n)`
+  to Infinity → NaN. Now clamped to **[0, 100]% inside `buildAmort`** (covers base + scenario) with a "rate
+  above 100% is treated as 100%" warning.
+- **Pre-2011 SSD was a wrong flat-3% / 1-year stub.** Added the two 2010 progressive regimes: **20 Feb – 29 Aug
+  2010** (within 1 year only, progressive 1% / 2% / 3% bands) and **30 Aug 2010 – 13 Jan 2011** (up to 3 years,
+  tapering full / two-thirds / one-third by year). **Before 20 Feb 2010: no SSD.** `getSsdInfo(pd, sd, base)`
+  returns the exact progressive amount + an effective rate. Verified: $1.8M bought 30 Aug 2010, sold 29 Aug
+  2012 ⇒ **S$32,400**; within-1-year is the progressive $48,600, not a flat $54,000; modern regimes unchanged.
 
 ## Round 5 — Real-interaction re-fixes + mobile/a11y polish
 `1fa6411` · 2026‑07‑02/03 · detail: **HANDOFF.md §18** (+ §4.8 invariants)
