@@ -537,7 +537,7 @@
   <p class="story-line">
     As <span class="chip-wrap"><select id="buyerType" class="chip chip-select" onchange="updateAbsdHint()" aria-label="Buyer type"><option value="SC">a Singapore Citizen</option><option value="PR">a Singapore PR</option><option value="FG">a Foreigner</option><option value="EN">an Entity</option></select><span class="caret" aria-hidden="true">▾</span></span>,
     I'm buying <span class="chip-wrap"><select id="propCount" class="chip chip-select" onchange="updateAbsdHint()" aria-label="Which property this is for you"><option value="1">my 1st property</option><option value="2">my 2nd property</option><option value="3">my 3rd+ property</option></select><span class="caret" aria-hidden="true">▾</span></span>
-    for <span class="chip-money">S$<input type="text" inputmode="numeric" id="purchasePrice" class="chip chip-num" placeholder="1,500,000" oninput="formatMoney(this);updateBsdHint();recalcLoan()" aria-label="Purchase price"></span>.
+    for <span class="chip-money">S$<input type="text" inputmode="numeric" id="purchasePrice" class="chip chip-num" placeholder="1,500,000" oninput="formatMoney(this);updateBsdHint();updateAbsdHint();recalcLoan()" aria-label="Purchase price"></span>.
   </p>
   <p class="story-line">
     I'll <span class="chip-wrap"><select id="usagePurpose" class="chip chip-select" onchange="toggleRentalSection()" aria-label="How you'll use it"><option value="own">live in it</option><option value="rent">rent it out</option></select><span class="caret" aria-hidden="true">▾</span></span>,
@@ -690,7 +690,7 @@
   <div class="grid2" style="margin-top:12px">
     <div class="field">
       <label for="agentComm">Sell-side agent commission (%)</label>
-      <input type="number" id="agentComm" min="0" placeholder="e.g. 1" step="0.1">
+      <input type="number" id="agentComm" min="0" placeholder="e.g. 1" step="any">
     </div>
     <div class="field">
       <label for="legalSell">Sell-side legal fees (S$)</label>
@@ -717,7 +717,7 @@
     </div>
     <div class="field">
       <label for="agentBuy">Buy-side agent commission (%)</label>
-      <input type="number" id="agentBuy" min="0" placeholder="e.g. 1" step="0.1">
+      <input type="number" id="agentBuy" min="0" placeholder="e.g. 1" step="any">
     </div>
   </div>
   <div class="grid2" style="margin-top:12px">
@@ -1115,13 +1115,20 @@ function updateAbsdHint() {
   if (!pd) { el.innerHTML = ''; ssdEl.style.display = 'none'; dateErrEl.style.display = 'none'; return; }
 
   var absd = getAbsdRate(bt, pc, pd, remission, fta, spouseRemit);
+  var absdFull = getAbsdRate(bt, pc, pd, false, fta, false);   // rate before remission — the cash actually paid at stamping
   var pp   = parseFloat(String(document.getElementById('purchasePrice').value).replace(/,/g, ''));
   var pvEl = document.getElementById('purchaseValuation');
   var pv   = pvEl ? (parseFloat(pvEl.value) || 0) : 0;
   var bsd  = pp ? getBsdRate(Math.max(pp, pv), pd) : null;
   var d    = new Date(pd);
   var regime = d>=new Date('2023-04-27')?'Apr 2023':d>=new Date('2021-12-16')?'Dec 2021':d>=new Date('2018-07-06')?'Jul 2018':d>=new Date('2013-01-12')?'Jan 2013':d>=new Date('2011-12-08')?'Dec 2011':'Pre-Dec 2011';
-  var html = '<span class="badge badge-info">ABSD: ' + absd + '%</span>';
+  /* When a remission applies, "ABSD: 0%" alone hides the cash reality. Section A (spouse) is truly remitted at
+     stamping; Section B (replacement) is pay-now / reclaim-later, so the buyer must still bridge the full rate. */
+  var absdBadge;
+  if (spouseRemit && absdFull > 0) absdBadge = 'ABSD: 0% net — fully remitted at stamping (no cash bridging)';
+  else if (remission && absdFull > absd) absdBadge = 'ABSD: ' + absd + '% net — pay ' + absdFull + '% upfront, reclaimed after selling your first home within 6 months';
+  else absdBadge = 'ABSD: ' + absd + '%';
+  var html = '<span class="badge badge-info">' + absdBadge + '</span>';
   if (bt === 'EN') html += ' <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">Flat rate — property count not applicable for entities</span>';
   if (bsd !== null) html += ' <span class="badge badge-info">BSD: ' + fmt(bsd) + '</span>';
   html += ' <span class="badge" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">rates effective ' + regime + '</span>';
@@ -1159,8 +1166,11 @@ function updateBsdHint() {
   var price = parseFloat(String(document.getElementById('purchasePrice').value).replace(/,/g, ''));
   var val   = parseFloat(document.getElementById('purchaseValuation').value) || 0;
   var pd    = document.getElementById('purchaseDate').value;
-  if (!price || !pd) return;
-  document.getElementById('bsdHint').innerHTML = '<span class="badge badge-info">Estimated BSD: ' + fmt(getBsdRate(Math.max(price, val), pd)) + '</span>';
+  var el    = document.getElementById('bsdHint');
+  /* Clear the chip when price/date is blank or invalid — early-returning here used to leave a STALE BSD
+     estimate showing (e.g. after switching to PSF mode with an incomplete sqft/psf). */
+  if (!price || !pd) { if (el) el.innerHTML = ''; return; }
+  el.innerHTML = '<span class="badge badge-info">Estimated BSD: ' + fmt(getBsdRate(Math.max(price, val), pd)) + '</span>';
 }
 
 function togglePriceBasis(which) {
@@ -1178,7 +1188,7 @@ function togglePriceBasis(which) {
     /* Returning to lump-sum mode: clear the PSF inputs so re-toggling back to PSF doesn't silently reuse old sqft/psf */
     document.getElementById(which + 'Sqft').value = '';
     document.getElementById(which + 'PricePsf').value = '';
-    if (which === 'purchase') { updateBsdHint(); recalcLoan(); }
+    if (which === 'purchase') { updateBsdHint(); updateAbsdHint(); recalcLoan(); }
   }
 }
 
@@ -1191,7 +1201,7 @@ function updatePriceFromBasis(which) {
   var _pf = document.getElementById(priceFieldId);
   _pf.value = (sqft > 0 && psf > 0) ? Math.round(sqft * psf) : '';
   formatMoney(_pf);
-  if (which === 'purchase') { updateBsdHint(); recalcLoan(); }
+  if (which === 'purchase') { updateBsdHint(); updateAbsdHint(); recalcLoan(); }
 }
 
 function toggleRentalSection() {
@@ -1498,7 +1508,7 @@ function calculate(scroll) {
     }
     lastReport = null;
     if (benchmarkChartInst) { benchmarkChartInst.destroy(); benchmarkChartInst = null; }
-    ['metricGrid','breakdownTable','breakeven','bmarkCards','laymanBox','sensitivityTable','downsideBreakeven','liveDataStatus'].forEach(function(id){ var e = document.getElementById(id); if (e) e.innerHTML = ''; });
+    ['metricGrid','breakdownTable','breakeven','bmarkCards','laymanBox','sensitivityTable','downsideBreakeven','liveDataStatus','srSummary'].forEach(function(id){ var e = document.getElementById(id); if (e) e.innerHTML = ''; });
     return;
   }
 
@@ -2051,22 +2061,35 @@ function buildLayman(propIrr, netPnl, equity, holdYears, benchmarks) {
 function formatMoney(el) {
   var s = String(el.value);
   var neg = s.trim().charAt(0) === '-';   // keep a leading minus VISIBLE so a negative isn't silently flipped positive
-  var raw = s.replace(/[^0-9]/g, '');
-  /* Hard-cap the digit count so continuous typing (never leaving the field) or a paste can't build an absurd
-     value like "1,800,000,700,000". 10 digits (up to ~S$10 billion) is far above any real property price;
-     together with clear-on-focus (a fresh entry starts empty) this makes runaway concatenation impossible. */
-  if (raw.length > 10) raw = raw.slice(0, 10);
-  var caret = el.selectionStart == null ? s.length : el.selectionStart;
-  var digitsBefore = s.slice(0, caret).replace(/[^0-9]/g, '').length;
-  if (!raw) { el.value = neg ? '-' : ''; return; }
-  var formatted = (neg ? '-' : '') + Number(raw).toLocaleString('en-US');
-  el.value = formatted;
-  var i = 0, count = 0;
-  for (; i < formatted.length && count < digitsBefore; i++) {
-    var c = formatted.charCodeAt(i);
-    if (c >= 48 && c <= 57) count++;
+  var lower = s.toLowerCase();
+  /* Path A — plain integer input (no decimal point, no k/m suffix): live-format with commas and preserve the
+     caret, the common typing case. Hard-cap at 10 digits (~S$10 billion, far above any property) so typing or
+     a paste can't build an absurd "1,800,000,700,000". */
+  if (lower.indexOf('.') === -1 && lower.indexOf('m') === -1 && lower.indexOf('k') === -1) {
+    var raw = s.replace(/[^0-9]/g, '');
+    if (raw.length > 10) raw = raw.slice(0, 10);
+    if (!raw) { el.value = neg ? '-' : ''; return; }
+    var caret = el.selectionStart == null ? s.length : el.selectionStart;
+    var digitsBefore = s.slice(0, caret).replace(/[^0-9]/g, '').length;
+    var formatted = (neg ? '-' : '') + Number(raw).toLocaleString('en-US');
+    el.value = formatted;
+    var i = 0, count = 0;
+    for (; i < formatted.length && count < digitsBefore; i++) { var c = formatted.charCodeAt(i); if (c >= 48 && c <= 57) count++; }
+    try { el.setSelectionRange(i, i); } catch (e) {}
+    return;
   }
-  try { el.setSelectionRange(i, i); } catch (e) {}
+  /* Path B — a decimal point or a k/m suffix is present. Treat a decimal as dollars-and-cents (a spreadsheet
+     paste of "1500000.00" must become 1,500,000, NOT 150,000,000 as a blind digit-strip would give) and honour
+     k/m shorthand ("1.65m" -> 1,650,000, "1500k" -> 1,500,000). Reparse to a whole-dollar value; caret to end. */
+  var mult = /m/.test(lower) ? 1e6 : (/k/.test(lower) ? 1e3 : 1);
+  var cleaned = lower.replace(/[^0-9.]/g, '');
+  var dot = cleaned.indexOf('.');
+  if (dot >= 0) cleaned = cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, '');   // keep only the first dot
+  var num = parseFloat(cleaned);
+  if (isNaN(num)) { el.value = neg ? '-' : ''; return; }
+  var val = Math.min(1e10, Math.round(num * mult));
+  el.value = (neg ? '-' : '') + val.toLocaleString('en-US');
+  try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) {}
 }
 /* Quick "hold N years" chip in the story writes the sale date (purchase date + N years). */
 function applyHoldYears() {
@@ -2074,7 +2097,14 @@ function applyHoldYears() {
   if (isNaN(y) || y < 0) return;
   var pd = document.getElementById('purchaseDate').value;
   if (!pd) return;
-  var sale = new Date(new Date(pd).getTime() + y * 365.25 * 24 * 60 * 60 * 1000);
+  /* Map "hold N years" to the calendar anniversary (purchase date + N years), NOT a 365.25-day approximation
+     that lands ~1 day BEFORE the anniversary and pushes the sale into a harsher SSD tier than the user means
+     (e.g. "hold 3 years" should sit on/after the 3rd anniversary, not one day short of it). Whole years use
+     setFullYear (exact anniversary); any fractional remainder adds ~days. */
+  var sale = new Date(pd);
+  var wholeY = Math.floor(y);
+  sale.setFullYear(sale.getFullYear() + wholeY);
+  if (y - wholeY > 0) sale.setDate(sale.getDate() + Math.round((y - wholeY) * 365.25));
   var sdEl = document.getElementById('saleDate');
   sdEl.value = sale.toISOString().split('T')[0];
   sdEl.dispatchEvent(new Event('change', { bubbles: true }));
